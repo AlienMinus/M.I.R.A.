@@ -1,6 +1,10 @@
 import express from 'express';
+import routes from './routes/index.js';
+
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use('/', routes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
