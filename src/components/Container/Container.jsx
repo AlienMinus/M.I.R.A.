@@ -60,7 +60,6 @@ export default function Container({ chatId = 0, onMenuClick }) {
   setIsLoading(true);
   setLastCopied(false);
 
-  // Add AI placeholder
   setMessages((prev) => [...prev, { role: "ai", text: "" }]);
 
   const input = userMessage.toLowerCase().trim();
@@ -68,7 +67,6 @@ export default function Container({ chatId = 0, onMenuClick }) {
 
   let responseText = null;
 
-  // Iterate over object keys
   for (const key in responsesData) {
     if (key === "__fallback__") continue;
 
@@ -82,11 +80,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }
   }
 
-  // Fallback
   if (!responseText) {
-    responseText =
-      responsesData.__fallback__ ||
-      "I'm still learning. Try asking something else 🙂";
+    responseText = responsesData.__fallback__;
   }
 
   let i = 0;
@@ -112,7 +107,7 @@ export default function Container({ chatId = 0, onMenuClick }) {
         clearInterval(timeoutRef.current);
         setIsLoading(false);
       }
-    }, 12);
+    }, 15);
   }, 400);
 };
 
