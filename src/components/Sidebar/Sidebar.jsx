@@ -44,12 +44,23 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
       />
       <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
-          <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} aria-label="Toggle sidebar">
-            <FiSidebar />
-          </button>
-          <button className="mobile-close-btn" onClick={() => setMobileOpen(false)} aria-label="Close sidebar">
-            <FiX />
-          </button>
+          <div className="sidebar-brand">
+            <img src="/proicon-bg.png" alt="MIRA" className="sidebar-logo" />
+            {!isCollapsed && (
+              <div className="sidebar-brand-text">
+                <span className="sidebar-subtitle">AI Assistant</span>
+                <span className="sidebar-title">.I.R.A.</span>
+              </div>
+            )}
+          </div>
+          <div className="sidebar-controls">
+            <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} aria-label="Toggle sidebar">
+              <FiSidebar />
+            </button>
+            <button className="mobile-close-btn" onClick={() => setMobileOpen(false)} aria-label="Close sidebar">
+              <FiX />
+            </button>
+          </div>
         </div>
 
         <div className="sidebar-section">
