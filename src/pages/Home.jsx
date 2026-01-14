@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiMessageSquare, FiMenu } from "react-icons/fi";
+import { FiMenu } from "react-icons/fi";
 import Sidebar from "../components/Sidebar/Sidebar";
 import Main from "../components/Main/Main";
 import SettingsModal from "../components/SettingsModal/SettingsModal";
@@ -27,19 +27,6 @@ export default function Home() {
       </button>
 
       <Main />
-
-      {/* Example floating icon like ChatGPT */}
-      <div
-        style={{
-          position: "absolute",
-          top: 16,
-          right: 20,
-          color: "#9ca3af",
-          fontSize: "20px"
-        }}
-      >
-        <FiMessageSquare />
-      </div>
 
       <SettingsModal
         isOpen={isSettingsOpen}

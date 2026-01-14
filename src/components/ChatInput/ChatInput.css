@@ -1,11 +1,11 @@
 .chat-input-wrapper {
-  position: absolute;
-  bottom: 24px;
+  position: relative;
   width: 100%;
   display: flex;
   justify-content: center;
-  padding: 0 16px;
+  padding: 0 16px 24px 16px;
   box-sizing: border-box;
+  z-index: 20;
 }
 
 .chat-input {
@@ -51,7 +51,8 @@
 /* Dropdown */
 .dropdown {
   position: absolute;
-  bottom: 70px;
+  bottom: 100%;
+  margin-bottom: 10px;
   left: calc(50% - 300px);
   width: 260px;
   background: #1e1e1e;
