@@ -26,7 +26,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
   const [lastCopied, setLastCopied] = useState(false);
   const bottomRef = useRef(null);
   const listRef = useRef(null);
-  const timeoutRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const typingIntervalRef = useRef(null);
   const notifyRef = useRef(null);
 
   useEffect(() => {
@@ -86,13 +87,18 @@ export default function Container({ chatId = 0, onMenuClick }) {
 
   let i = 0;
 
-  if (timeoutRef.current) {
-    clearTimeout(timeoutRef.current);
-    clearInterval(timeoutRef.current);
+  // Clear any existing timers
+  if (typingTimeoutRef.current) {
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = null;
+  }
+  if (typingIntervalRef.current) {
+    clearInterval(typingIntervalRef.current);
+    typingIntervalRef.current = null;
   }
 
-  timeoutRef.current = setTimeout(() => {
-    timeoutRef.current = setInterval(() => {
+  typingTimeoutRef.current = setTimeout(() => {
+    typingIntervalRef.current = setInterval(() => {
       setMessages((prev) => {
         const updated = [...prev];
         const last = { ...updated[updated.length - 1] };
@@ -104,7 +110,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
       i++;
 
       if (i >= responseText.length) {
-        clearInterval(timeoutRef.current);
+        clearInterval(typingIntervalRef.current);
+        typingIntervalRef.current = null;
         setIsLoading(false);
       }
     }, 15);
@@ -118,21 +125,31 @@ export default function Container({ chatId = 0, onMenuClick }) {
 
   const handleRegenerate = () => {
     if (isLoading) return;
-    const lastUserMessage = messages[messages.length - 2];
+    if (messages.length < 2) return;
+    // Find the most recent user message
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
     const userText = lastUserMessage ? lastUserMessage.text : "";
-    // Remove last AI message
-    setMessages((prev) => prev.slice(0, -1));
-    generateResponse(userText);
-  };
+    // Remove last AI message if it's present
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.role === "ai") {
+        return prev.slice(0, -1);
+      }
+      return prev;
+    });
+    if (userText) {
+      generateResponse(userText);
+    }
+  }; 
 
   const handleCopyLast = () => {
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg) {
+    if (lastMsg && lastMsg.role === "ai" && lastMsg.text) {
       navigator.clipboard.writeText(lastMsg.text);
       setLastCopied(true);
       setTimeout(() => setLastCopied(false), 2000);
     }
-  };
+  }; 
 
   const startEditing = (index) => {
     setEditingIndex(index);
@@ -153,13 +170,16 @@ export default function Container({ chatId = 0, onMenuClick }) {
   };
 
   const handleStop = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      clearInterval(timeoutRef.current);
-      timeoutRef.current = null;
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
     }
     setIsLoading(false);
-  };
+  }; 
 
   const handleScroll = () => {
     if (listRef.current) {
@@ -184,6 +204,24 @@ export default function Container({ chatId = 0, onMenuClick }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+        typingIntervalRef.current = null;
+      }
+      if (notifyRef.current) {
+        clearTimeout(notifyRef.current);
+        notifyRef.current = null;
+      }
+    };
+  }, []);
 
   const suggestedPrompts = [
     "Plan a 3-day trip to Tokyo",
@@ -227,7 +265,17 @@ export default function Container({ chatId = 0, onMenuClick }) {
                   isLoading={isLoading}
                 />
               ) : (
-                <Suspense fallback={null}>
+                <Suspense
+                  fallback={
+                    <div className="ai-response-container">
+                      <div className="ai-message-bubble" role="status" aria-live="polite">
+                        <div className="thinking-dots">
+                          <span></span><span></span><span></span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                >
                   <AIResponse text={msg.text} />
                 </Suspense>
               )}
@@ -236,11 +284,13 @@ export default function Container({ chatId = 0, onMenuClick }) {
           {messages.length > 0 &&
             messages[messages.length - 1].role === "ai" &&
             !isLoading && (
-              <div className="regenerate-container">
+              <div className="regenerate-container" aria-live="polite">
                 <button
                   onClick={handleCopyLast}
                   className="regenerate-btn"
                   title="Copy response"
+                  aria-label="Copy response"
+                  disabled={isLoading}
                 >
                   {lastCopied ? <FiCheck size={14} /> : <FiCopy size={14} />}
                 </button>
@@ -248,6 +298,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
                   onClick={handleRegenerate}
                   className="regenerate-btn"
                   title="Regenerate response"
+                  aria-label="Regenerate response"
+                  disabled={isLoading}
                 >
                   <FiRefreshCw size={14} />
                 </button>
