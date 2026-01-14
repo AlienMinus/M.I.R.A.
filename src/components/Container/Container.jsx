@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
-import { FiRefreshCw, FiArrowDown, FiArrowUp, FiCopy, FiCheck } from "react-icons/fi";
+import {
+  FiRefreshCw,
+  FiArrowDown,
+  FiArrowUp,
+  FiCopy,
+  FiCheck,
+} from "react-icons/fi";
 import ChatInput from "../ChatInput/ChatInput";
 import Navbar from "../Navbar/Navbar";
 import UserMessage from "./UserMessage";
@@ -25,20 +31,24 @@ export default function Container({ chatId = 0, onMenuClick }) {
 
   useEffect(() => {
     localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messages));
-    
+
     const firstUserMsg = messages.find((m) => m.role === "user");
     if (firstUserMsg) {
-      const title = firstUserMsg.text.length > 30 
-        ? firstUserMsg.text.slice(0, 30) + "..." 
-        : firstUserMsg.text;
+      const title =
+        firstUserMsg.text.length > 30
+          ? firstUserMsg.text.slice(0, 30) + "..."
+          : firstUserMsg.text;
       document.title = `${title} | M.I.R.A.`;
     } else {
       document.title = "M.I.R.A.";
     }
 
     if (messages.length > 0) {
-      localStorage.setItem(`mira-chat-timestamp-${chatId}`, Date.now().toString());
-      
+      localStorage.setItem(
+        `mira-chat-timestamp-${chatId}`,
+        Date.now().toString()
+      );
+
       if (notifyRef.current) clearTimeout(notifyRef.current);
       notifyRef.current = setTimeout(() => {
         window.dispatchEvent(new Event("mira-chat-update"));
@@ -47,37 +57,64 @@ export default function Container({ chatId = 0, onMenuClick }) {
   }, [messages, chatId]);
 
   const generateResponse = (userMessage = "") => {
-    setIsLoading(true);
-    setLastCopied(false);
-    
-    // Add placeholder for AI response
-    setMessages((prev) => [...prev, { role: "ai", text: "" }]);
+  setIsLoading(true);
+  setLastCopied(false);
 
-    const match = responsesData.find((r) => r.key && userMessage.toLowerCase().includes(r.key.toLowerCase()));
-    const responseText = match ? match.text : responsesData[Math.floor(Math.random() * responsesData.length)].text;
+  // Add AI placeholder
+  setMessages((prev) => [...prev, { role: "ai", text: "" }]);
 
-    let i = 0;
+  const input = userMessage.toLowerCase().trim();
+  const words = input.split(/\s+/);
 
-    if (timeoutRef.current) clearInterval(timeoutRef.current);
+  let responseText = null;
 
-    // Simulate network delay (Thinking...)
-    timeoutRef.current = setTimeout(() => {
-      timeoutRef.current = setInterval(() => {
-        setMessages((prev) => {
-          const newMessages = [...prev];
-          const lastMsg = { ...newMessages[newMessages.length - 1] };
-          lastMsg.text = responseText.slice(0, i + 1);
-          newMessages[newMessages.length - 1] = lastMsg;
-          return newMessages;
-        });
-        i++;
-        if (i > responseText.length) {
-          clearInterval(timeoutRef.current);
-          setIsLoading(false);
-        }
-      }, 30);
-    }, 1500);
-  };
+  // Iterate over object keys
+  for (const key in responsesData) {
+    if (key === "__fallback__") continue;
+
+    if (
+      input === key ||
+      input.includes(key) ||
+      words.includes(key)
+    ) {
+      responseText = responsesData[key];
+      break;
+    }
+  }
+
+  // Fallback
+  if (!responseText) {
+    responseText =
+      responsesData.__fallback__ ||
+      "I'm still learning. Try asking something else 🙂";
+  }
+
+  let i = 0;
+
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+    clearInterval(timeoutRef.current);
+  }
+
+  timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = setInterval(() => {
+      setMessages((prev) => {
+        const updated = [...prev];
+        const last = { ...updated[updated.length - 1] };
+        last.text = responseText.slice(0, i + 1);
+        updated[updated.length - 1] = last;
+        return updated;
+      });
+
+      i++;
+
+      if (i >= responseText.length) {
+        clearInterval(timeoutRef.current);
+        setIsLoading(false);
+      }
+    }, 12);
+  }, 400);
+};
 
   const handleSendMessage = (text) => {
     setMessages((prev) => [...prev, { role: "user", text }]);
@@ -157,18 +194,24 @@ export default function Container({ chatId = 0, onMenuClick }) {
     "Plan a 3-day trip to Tokyo",
     "How does AI work?",
     "Write a Python script",
-    "Design a logo concept"
+    "Design a logo concept",
   ];
 
   return (
-    <section className={`main ${messages.length > 0 ? "chat-active" : "chat-empty"}`}>
+    <section
+      className={`main ${messages.length > 0 ? "chat-active" : "chat-empty"}`}
+    >
       <Navbar onMenuClick={onMenuClick} />
-      
+
       <div className={`empty-state ${messages.length > 0 ? "fade-out" : ""}`}>
         <h1>What can I help with?</h1>
         <div className="suggested-prompts">
           {suggestedPrompts.map((prompt, idx) => (
-            <button key={idx} className="suggestion-btn" onClick={() => handleSendMessage(prompt)}>
+            <button
+              key={idx}
+              className="suggestion-btn"
+              onClick={() => handleSendMessage(prompt)}
+            >
               {prompt}
             </button>
           ))}
@@ -195,28 +238,46 @@ export default function Container({ chatId = 0, onMenuClick }) {
               )}
             </div>
           ))}
-          {messages.length > 0 && messages[messages.length - 1].role === "ai" && !isLoading && (
-            <div className="regenerate-container">
-              <button onClick={handleCopyLast} className="regenerate-btn" title="Copy response">
-                {lastCopied ? <FiCheck size={14} /> : <FiCopy size={14} />}
-              </button>
-              <button onClick={handleRegenerate} className="regenerate-btn" title="Regenerate response">
-                <FiRefreshCw size={14} />
-              </button>
-            </div>
-          )}
+          {messages.length > 0 &&
+            messages[messages.length - 1].role === "ai" &&
+            !isLoading && (
+              <div className="regenerate-container">
+                <button
+                  onClick={handleCopyLast}
+                  className="regenerate-btn"
+                  title="Copy response"
+                >
+                  {lastCopied ? <FiCheck size={14} /> : <FiCopy size={14} />}
+                </button>
+                <button
+                  onClick={handleRegenerate}
+                  className="regenerate-btn"
+                  title="Regenerate response"
+                >
+                  <FiRefreshCw size={14} />
+                </button>
+              </div>
+            )}
           <div ref={bottomRef} />
         </div>
       )}
 
       {showScrollTop && (
-        <button className="scroll-top-btn" onClick={scrollToTop} aria-label="Scroll to top">
+        <button
+          className="scroll-top-btn"
+          onClick={scrollToTop}
+          aria-label="Scroll to top"
+        >
           <FiArrowUp />
         </button>
       )}
 
       {showScrollBottom && (
-        <button className="scroll-bottom-btn" onClick={scrollToBottom} aria-label="Scroll to bottom">
+        <button
+          className="scroll-bottom-btn"
+          onClick={scrollToBottom}
+          aria-label="Scroll to bottom"
+        >
           <FiArrowDown />
         </button>
       )}
