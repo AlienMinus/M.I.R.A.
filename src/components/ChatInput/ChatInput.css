@@ -1,0 +1,86 @@
+.chat-input-wrapper {
+  position: absolute;
+  bottom: 24px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.chat-input {
+  width: 100%;
+  max-width: 750px;
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 40px;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px;
+  min-height: 44px;
+}
+
+.chat-input textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 16px;
+  padding: 6px 10px;
+  resize: none;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 6px;
+}
+
+.icon-btn:hover {
+  color: white;
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  bottom: 70px;
+  left: calc(50% - 300px);
+  width: 260px;
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background: #2a2a2a;
+}
+
+.dropdown-icon {
+  font-size: 18px;
+  color: #9ca3af;
+}
+
+@media (max-width: 640px) {
+  .dropdown {
+    left: 16px;
+  }
+}

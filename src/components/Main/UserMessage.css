@@ -1,0 +1,96 @@
+.user-message-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  justify-content: flex-end;
+}
+
+.user-message-bubble {
+  background-color: #27272a;
+  padding: 10px 16px;
+  border-radius: 20px;
+  max-width: 80%;
+  position: relative;
+  color: white;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.edit-msg-btn {
+  opacity: 0;
+  background: #27272a;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.user-message-container:hover .edit-msg-btn {
+  opacity: 1;
+}
+
+.edit-msg-btn:hover {
+  background-color: #3f3f46;
+  color: white;
+}
+
+.edit-mode {
+  width: 100%;
+  background: #27272a;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-textarea {
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.save-btn, .cancel-btn {
+  padding: 6px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background-color 0.2s;
+}
+
+.save-btn:hover, .cancel-btn:hover {
+  transform: scale(1.1);
+}
+
+.save-btn {
+  background-color: #10a37f;
+  color: white;
+}
+
+.cancel-btn {
+  background-color: #3f3f46;
+  color: white;
+}

@@ -1,0 +1,116 @@
+.ai-response-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 100%;
+  width: 100%;
+}
+
+.ai-message-bubble {
+  color: #e4e4e7;
+  max-width: 100%;
+  flex: 1;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Markdown Styles */
+.ai-message-bubble p {
+  margin-bottom: 0.75rem;
+}
+
+.ai-message-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-message-bubble ul, .ai-message-bubble ol {
+  margin: 0.5rem 0 0.5rem 1.5rem;
+}
+
+/* Code Blocks */
+.code-block-wrapper {
+  border-radius: 8px;
+  margin: 1rem 0;
+  overflow: hidden;
+  border: 1px solid #2a2a2a;
+  background-color: #1e1e1e;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #2a2a2a;
+  color: #b4b4b4;
+  font-size: 12px;
+  font-family: sans-serif;
+}
+
+.code-lang {
+  text-transform: uppercase;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: #b4b4b4;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.copy-btn:hover {
+  color: white;
+}
+
+/* Copy Message Button */
+.copy-msg-btn {
+  opacity: 0;
+  background: #27272a;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s, background-color 0.2s;
+  margin-top: 4px;
+}
+
+.ai-response-container:hover .copy-msg-btn {
+  opacity: 1;
+}
+
+.copy-msg-btn:hover {
+  background-color: #3f3f46;
+  color: white;
+}
+
+/* Thinking Animation */
+.thinking-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.thinking-dots span {
+  width: 6px;
+  height: 6px;
+  background-color: #a1a1aa;
+  border-radius: 50%;
+  animation: pulse 1.4s infinite ease-in-out both;
+}
+
+.thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+.thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes pulse {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
