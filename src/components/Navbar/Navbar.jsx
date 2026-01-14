@@ -35,8 +35,8 @@ export default function Navbar({ onMenuClick }) {
           <img src="/proicon-bg.png" alt="MIRA" className="navbar-logo" />
         </div>
         <div className="navbar-text">
-          <span className="navbar-title">.I.R.A.</span>
           <span className="navbar-subtitle">AI Assistant</span>
+          <span className="navbar-title">.I.R.A.</span>
         </div>
       </div>
     </nav>
