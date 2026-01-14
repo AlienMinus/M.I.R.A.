@@ -1,11 +1,10 @@
 {
-  "version": 2,
+  "version": 3,
   "builds": [
     { "src": "package.json", "use": "@vercel/static-build" }
   ],
   "outputDirectory": "dist",
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server/server.js" },
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/index.html" }
   ],
