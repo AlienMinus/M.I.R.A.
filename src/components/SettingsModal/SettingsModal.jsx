@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { FiX } from "react-icons/fi";
+import { FiX, FiTrash2 } from "react-icons/fi";
 import "./SettingsModal.css";
 
-export default function SettingsModal({ isOpen, onClose, onSave }) {
+export default function SettingsModal({ isOpen, onClose, onSave, onClearHistory }) {
   const [model, setModel] = useState("gpt-4o");
   const [temperature, setTemperature] = useState(0.7);
   const [systemPrompt, setSystemPrompt] = useState("You are a helpful AI assistant.");
@@ -43,6 +43,18 @@ export default function SettingsModal({ isOpen, onClose, onSave }) {
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
             />
+          </div>
+          
+          <div className="form-group" style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #27272a" }}>
+            <label style={{ color: "#ef4444" }}>Danger Zone</label>
+            <button 
+              onClick={onClearHistory}
+              className="suggestion-btn" 
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: "8px", justifyContent: "center", borderColor: "#ef4444", color: "#ef4444" }}
+            >
+              <FiTrash2 />
+              Clear all chat history
+            </button>
           </div>
         </div>
         <div className="modal-footer">

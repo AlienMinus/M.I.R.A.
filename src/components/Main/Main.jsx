@@ -5,8 +5,11 @@ import UserMessage from "./UserMessage";
 import AIResponse from "./AIResponse";
 import "./Main.css";
 
-export default function Main() {
-  const [messages, setMessages] = useState([]);
+export default function Main({ chatId = 0 }) {
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem(`mira-chat-${chatId}`);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -15,6 +18,10 @@ export default function Main() {
   const bottomRef = useRef(null);
   const listRef = useRef(null);
   const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messages));
+  }, [messages, chatId]);
 
   const generateResponse = () => {
     setIsLoading(true);
