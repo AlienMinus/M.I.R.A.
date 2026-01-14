@@ -46,14 +46,16 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }
   }, [messages, chatId]);
 
-  const generateResponse = () => {
+  const generateResponse = (userMessage = "") => {
     setIsLoading(true);
     setLastCopied(false);
     
     // Add placeholder for AI response
     setMessages((prev) => [...prev, { role: "ai", text: "" }]);
 
-    const responseText = responsesData[Math.floor(Math.random() * responsesData.length)].text;
+    const match = responsesData.find((r) => r.key && userMessage.toLowerCase().includes(r.key.toLowerCase()));
+    const responseText = match ? match.text : responsesData[Math.floor(Math.random() * responsesData.length)].text;
+
     let i = 0;
 
     if (timeoutRef.current) clearInterval(timeoutRef.current);
@@ -79,14 +81,16 @@ export default function Container({ chatId = 0, onMenuClick }) {
 
   const handleSendMessage = (text) => {
     setMessages((prev) => [...prev, { role: "user", text }]);
-    generateResponse();
+    generateResponse(text);
   };
 
   const handleRegenerate = () => {
     if (isLoading) return;
+    const lastUserMessage = messages[messages.length - 2];
+    const userText = lastUserMessage ? lastUserMessage.text : "";
     // Remove last AI message
     setMessages((prev) => prev.slice(0, -1));
-    generateResponse();
+    generateResponse(userText);
   };
 
   const handleCopyLast = () => {
@@ -113,7 +117,7 @@ export default function Container({ chatId = 0, onMenuClick }) {
     newMessages.push({ role: "user", text: newText });
     setMessages(newMessages);
     setEditingIndex(null);
-    generateResponse();
+    generateResponse(newText);
   };
 
   const handleStop = () => {
