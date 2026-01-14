@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { FiRefreshCw, FiArrowDown, FiCopy, FiCheck } from "react-icons/fi";
+import { FiRefreshCw, FiArrowDown, FiArrowUp, FiCopy, FiCheck } from "react-icons/fi";
 import ChatInput from "../ChatInput/ChatInput";
 import UserMessage from "./UserMessage";
 import AIResponse from "./AIResponse";
@@ -10,6 +10,7 @@ export default function Main() {
   const [isLoading, setIsLoading] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [lastCopied, setLastCopied] = useState(false);
   const bottomRef = useRef(null);
   const listRef = useRef(null);
@@ -99,11 +100,18 @@ export default function Main() {
       const { scrollTop, scrollHeight, clientHeight } = listRef.current;
       const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
       setShowScrollBottom(!isNearBottom);
+
+      const isScrolledDown = scrollTop > 200;
+      setShowScrollTop(isScrolledDown);
     }
   };
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToTop = () => {
+    listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Auto-scroll to bottom
@@ -162,6 +170,12 @@ export default function Main() {
           )}
           <div ref={bottomRef} />
         </div>
+      )}
+
+      {showScrollTop && (
+        <button className="scroll-top-btn" onClick={scrollToTop} aria-label="Scroll to top">
+          <FiArrowUp />
+        </button>
       )}
 
       {showScrollBottom && (
