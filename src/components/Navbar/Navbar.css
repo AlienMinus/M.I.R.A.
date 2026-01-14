@@ -7,6 +7,9 @@
   background-color: #0f0f0f;
   border-bottom: 1px solid #2a2a2a;
   box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .navbar-menu-btn {
