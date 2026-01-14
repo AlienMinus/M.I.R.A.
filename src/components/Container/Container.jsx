@@ -64,20 +64,39 @@ export default function Container({ chatId = 0, onMenuClick }) {
   setMessages((prev) => [...prev, { role: "ai", text: "" }]);
 
   const input = userMessage.toLowerCase().trim();
-  const words = input.split(/\s+/);
+
+  // Prioritize longer matches (e.g., "git commit" over "git")
+  const sortedKeys = Object.keys(responsesData)
+    .filter((key) => key !== "__fallback__")
+    .sort((a, b) => b.length - a.length);
 
   let responseText = null;
+  let matchedKey = null;
 
-  for (const key in responsesData) {
-    if (key === "__fallback__") continue;
-
-    if (
-      input === key ||
-      input.includes(key) ||
-      words.includes(key)
-    ) {
+  for (const key of sortedKeys) {
+    if (input.includes(key.toLowerCase())) {
       responseText = responsesData[key];
+      matchedKey = key;
       break;
+    }
+  }
+
+  // If a generic key is matched (e.g., "joke"), check if there are numbered variations (e.g., "joke 1")
+  // and pick one randomly to provide variety.
+  if (matchedKey) {
+    const variations = Object.keys(responsesData).filter((k) => {
+      const lowerK = k.toLowerCase();
+      const lowerMatched = matchedKey.toLowerCase();
+      return (
+        lowerK.startsWith(lowerMatched + " ") &&
+        !isNaN(parseInt(lowerK.slice(lowerMatched.length + 1).trim()))
+      );
+    });
+
+    if (variations.length > 0) {
+      const randomKey =
+        variations[Math.floor(Math.random() * variations.length)];
+      responseText = responsesData[randomKey];
     }
   }
 

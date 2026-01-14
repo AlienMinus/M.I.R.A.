@@ -5,6 +5,8 @@ import jokes from "./jokes.json";
 import about from "./about.json";
 import errors from "./errors.json";
 import extended from "./extended.json";
+import commands from "./commands.json";
+
 
 const responsesData = {
   ...greetings,
@@ -14,6 +16,7 @@ const responsesData = {
   ...about,
   ...errors,
   ...extended,
+  ...commands
 };
 
 export default responsesData;
