@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar/Sidebar";
-import Main from "../components/Main/Main";
+import Container from "../components/Container/Container";
 import SettingsModal from "../components/SettingsModal/SettingsModal";
 
 export default function Home() {
@@ -51,7 +51,7 @@ export default function Home() {
       />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-        <Main key={chatId} chatId={chatId} onMenuClick={() => setMobileOpen(true)} />
+        <Container key={chatId} chatId={chatId} onMenuClick={() => setMobileOpen(true)} />
       </div>
 
       <SettingsModal

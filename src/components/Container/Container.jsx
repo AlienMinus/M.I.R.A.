@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { FiRefreshCw, FiArrowDown, FiArrowUp, FiCopy, FiCheck } from "react-icons/fi";
 import ChatInput from "../ChatInput/ChatInput";
 import Navbar from "../Navbar/Navbar";
 import UserMessage from "./UserMessage";
-import AIResponse from "./AIResponse";
-import "./Main.css";
+import "./Container.css";
+import responsesData from "../../data/responses.json";
 
-export default function Main({ chatId = 0, onMenuClick }) {
+const AIResponse = lazy(() => import("./AIResponse"));
+
+export default function Container({ chatId = 0, onMenuClick }) {
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(`mira-chat-${chatId}`);
     return saved ? JSON.parse(saved) : [];
@@ -51,7 +53,7 @@ export default function Main({ chatId = 0, onMenuClick }) {
     // Add placeholder for AI response
     setMessages((prev) => [...prev, { role: "ai", text: "" }]);
 
-    const responseText = "I am **MIRA**. How can I *assist* you today?\n\nHere are some things I can do:\n- Answer questions\n- Generate code\n- Create images";
+    const responseText = responsesData[Math.floor(Math.random() * responsesData.length)].text;
     let i = 0;
 
     if (timeoutRef.current) clearInterval(timeoutRef.current);
@@ -155,7 +157,7 @@ export default function Main({ chatId = 0, onMenuClick }) {
   ];
 
   return (
-    <main className={`main ${messages.length > 0 ? "chat-active" : "chat-empty"}`}>
+    <section className={`main ${messages.length > 0 ? "chat-active" : "chat-empty"}`}>
       <Navbar onMenuClick={onMenuClick} />
       
       <div className={`empty-state ${messages.length > 0 ? "fade-out" : ""}`}>
@@ -183,7 +185,9 @@ export default function Main({ chatId = 0, onMenuClick }) {
                   isLoading={isLoading}
                 />
               ) : (
-                <AIResponse text={msg.text} />
+                <Suspense fallback={null}>
+                  <AIResponse text={msg.text} />
+                </Suspense>
               )}
             </div>
           ))}
@@ -218,6 +222,6 @@ export default function Main({ chatId = 0, onMenuClick }) {
         isLoading={isLoading}
         onStop={handleStop}
       />
-    </main>
+    </section>
   );
 }
