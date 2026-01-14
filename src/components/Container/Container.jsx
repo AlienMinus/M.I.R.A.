@@ -10,7 +10,7 @@ import ChatInput from "../ChatInput/ChatInput";
 import Navbar from "../Navbar/Navbar";
 import UserMessage from "./UserMessage";
 import "./Container.css";
-import responsesData from "../../data/responses.json";
+import responsesData from "../../data/responses";
 
 const AIResponse = lazy(() => import("./AIResponse"));
 
@@ -33,8 +33,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
   useEffect(() => {
     localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messages));
 
-    const firstUserMsg = messages.find((m) => m.role === "user");
-    if (firstUserMsg) {
+    const firstUserMsg = messages.find((m) => m.role === "user" && typeof m.text === "string");
+    if (firstUserMsg && typeof firstUserMsg.text === "string") {
       const title =
         firstUserMsg.text.length > 30
           ? firstUserMsg.text.slice(0, 30) + "..."
@@ -82,8 +82,9 @@ export default function Container({ chatId = 0, onMenuClick }) {
   }
 
   if (!responseText) {
-    responseText = responsesData.__fallback__;
+    responseText = responsesData.__fallback__ || "";
   }
+  responseText = String(responseText);
 
   let i = 0;
 
@@ -101,15 +102,19 @@ export default function Container({ chatId = 0, onMenuClick }) {
     typingIntervalRef.current = setInterval(() => {
       setMessages((prev) => {
         const updated = [...prev];
+        if (updated.length === 0) {
+          // Ensure an AI message exists to update
+          updated.push({ role: "ai", text: "" });
+        }
         const last = { ...updated[updated.length - 1] };
-        last.text = responseText.slice(0, i + 1);
+        last.text = String(responseText).slice(0, i + 1);
         updated[updated.length - 1] = last;
         return updated;
       });
 
       i++;
 
-      if (i >= responseText.length) {
+      if (i >= String(responseText).length) {
         clearInterval(typingIntervalRef.current);
         typingIntervalRef.current = null;
         setIsLoading(false);

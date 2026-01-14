@@ -1,0 +1,6 @@
+{
+  "hello": "Hello! I am **MIRA**. How can I *assist* you today?\n\nHere are some things I can do:\n- Answer questions\n- Generate code\n- Create images",
+  "goodbye": "Goodbye! Have a great day!",
+  "ask_name": "You can call me **MIRA**. What's your name?",
+  "thanks": "You're welcome! If you need anything else, just ask."
+}

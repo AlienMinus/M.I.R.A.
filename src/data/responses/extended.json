@@ -1,0 +1,10 @@
+{
+  "tokyo": "Here is a suggested 3-day itinerary for Tokyo:\n\n**Day 1: Modern Tokyo**\n- Morning: Visit Meiji Shrine and Yoyogi Park.\n- Afternoon: Explore Harajuku's Takeshita Street and Shibuya Crossing.\n- Evening: Dinner in Shinjuku and view the city from the Metropolitan Government Building.\n\n**Day 2: Traditional Tokyo**\n- Morning: Senso-ji Temple in Asakusa.\n- Afternoon: Tokyo National Museum in Ueno Park.\n- Evening: Akihabara for electronics and anime culture.\n\n**Day 3: Bay Area & Odaiba**\n- Morning: Tsukiji Outer Market for sushi breakfast.\n- Afternoon: TeamLab Planets and shopping in Odaiba.\n- Evening: Relax by Tokyo Bay.",
+  "ai work": "Artificial Intelligence (AI) is the simulation of human intelligence processes by machines, especially computer systems. These processes include learning (the acquisition of information and rules for using the information), reasoning (using rules to reach approximate or definite conclusions), and self-correction.",
+  "python": "Here is a simple Python script to calculate the factorial of a number:\n\n```python\ndef factorial(n):\n    if n == 0:\n        return 1\n    else:\n        return n * factorial(n-1)\n\nprint(factorial(5))\n```",
+  "logo": "For a logo concept, consider these steps:\n1. **Define the Brand**: What are the core values?\n2. **Brainstorm**: Sketch rough ideas.\n3. **Simplify**: A good logo should be recognizable even when small.\n4. **Color Palette**: Choose colors that evoke the right emotion.\n\nFor a tech startup, geometric shapes and blue tones often work well.",
+  "weather": "I don't have access to real-time weather data right now, but looking out the window is always a good backup plan!",
+  "time": "I exist outside of standard time, but your device clock should be accurate.",
+  "react": "React is a JavaScript library for building user interfaces. It uses a component-based architecture which makes code reusable and easier to maintain.",
+  "javascript": "JavaScript is the programming language of the Web. It allows you to implement complex features on web pages."
+}

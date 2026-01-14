@@ -1,0 +1,10 @@
+{
+  "about": "I'm **MIRA**, a lightweight assistant that helps with coding, ideas, and image generation.",
+  "who are you": "I am MIRA, a virtual assistant here to help you navigate your tasks.",
+  "what are you": "I'm a React-based AI assistant simulation.",
+  "creator": "I was built by a developer exploring the capabilities of React and Vite.",
+  "developer": "I was built by a developer exploring the capabilities of React and Vite.",
+  "version": "I'm currently in version 1.0.0.",
+  "tech stack": "I'm built with React, Vite, and standard CSS.",
+  "mira": "MIRA stands for Minimal Interactive React Assistant."
+}

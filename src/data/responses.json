@@ -1,7 +1,0 @@
-{
-  "hello": "Hello! I am **MIRA**. How can I *assist* you today?\n\nHere are some things I can do:\n- Answer questions\n- Generate code\n- Create images",
-  "help": "Sure! Here are some ways I can help you:\n- Answer questions\n- Generate code snippets\n- Create images based on descriptions\n- Provide explanations and tutorials",
-  "goodbye": "Goodbye! Have a great day!",
-  "joke": "Why did the programmer quit his job? Because he didn't get arrays!",
-  "__fallback__": "I'm not sure about that yet, but I'm learning every day 🚀"
-}
