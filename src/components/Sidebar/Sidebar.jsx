@@ -48,7 +48,6 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
             <img src="/proicon-bg.png" alt="MIRA" className="sidebar-logo" />
             {!isCollapsed && (
               <div className="sidebar-brand-text">
-                <span className="sidebar-subtitle">AI Assistant</span>
                 <span className="sidebar-title">.I.R.A.</span>
               </div>
             )}

@@ -28,7 +28,7 @@
 .navbar-brand {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .navbar-text {
