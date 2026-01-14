@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { FiMenu } from "react-icons/fi";
 import Sidebar from "../components/Sidebar/Sidebar";
 import Main from "../components/Main/Main";
 import SettingsModal from "../components/SettingsModal/SettingsModal";
@@ -51,12 +50,9 @@ export default function Home() {
         currentChatId={chatId}
       />
 
-      {/* Mobile Hamburger Button */}
-      <button className="mobile-menu-btn" onClick={() => setMobileOpen(true)}>
-        <FiMenu />
-      </button>
-
-      <Main key={chatId} chatId={chatId} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+        <Main key={chatId} chatId={chatId} onMenuClick={() => setMobileOpen(true)} />
+      </div>
 
       <SettingsModal
         isOpen={isSettingsOpen}

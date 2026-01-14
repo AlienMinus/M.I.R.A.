@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { FiRefreshCw, FiArrowDown, FiArrowUp, FiCopy, FiCheck } from "react-icons/fi";
 import ChatInput from "../ChatInput/ChatInput";
+import Navbar from "../Navbar/Navbar";
 import UserMessage from "./UserMessage";
 import AIResponse from "./AIResponse";
 import "./Main.css";
 
-export default function Main({ chatId = 0 }) {
+export default function Main({ chatId = 0, onMenuClick }) {
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem(`mira-chat-${chatId}`);
     return saved ? JSON.parse(saved) : [];
@@ -18,9 +19,18 @@ export default function Main({ chatId = 0 }) {
   const bottomRef = useRef(null);
   const listRef = useRef(null);
   const timeoutRef = useRef(null);
+  const notifyRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messages));
+    if (messages.length > 0) {
+      localStorage.setItem(`mira-chat-timestamp-${chatId}`, Date.now().toString());
+      
+      if (notifyRef.current) clearTimeout(notifyRef.current);
+      notifyRef.current = setTimeout(() => {
+        window.dispatchEvent(new Event("mira-chat-update"));
+      }, 500);
+    }
   }, [messages, chatId]);
 
   const generateResponse = () => {
@@ -134,20 +144,21 @@ export default function Main({ chatId = 0 }) {
   ];
 
   return (
-    <main className="main">
-      {messages.length === 0 ? (
-        <div className="empty-state">
-          <img src="/proicon-bg.png" alt="MIRA" className="empty-state-img" />
-          <h1>What can I help with?</h1>
-          <div className="suggested-prompts">
-            {suggestedPrompts.map((prompt, idx) => (
-              <button key={idx} className="suggestion-btn" onClick={() => handleSendMessage(prompt)}>
-                {prompt}
-              </button>
-            ))}
-          </div>
+    <main className={`main ${messages.length > 0 ? "chat-active" : "chat-empty"}`}>
+      <Navbar onMenuClick={onMenuClick} />
+      
+      <div className={`empty-state ${messages.length > 0 ? "fade-out" : ""}`}>
+        <h1>What can I help with?</h1>
+        <div className="suggested-prompts">
+          {suggestedPrompts.map((prompt, idx) => (
+            <button key={idx} className="suggestion-btn" onClick={() => handleSendMessage(prompt)}>
+              {prompt}
+            </button>
+          ))}
         </div>
-      ) : (
+      </div>
+
+      {messages.length > 0 && (
         <div className="messages-list" ref={listRef} onScroll={handleScroll}>
           {messages.map((msg, idx) => (
             <div key={idx} className={`message ${msg.role}`}>
