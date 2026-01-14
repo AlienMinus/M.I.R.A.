@@ -27,8 +27,14 @@
 
 .navbar-brand {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.navbar-text {
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
 }
 
 .logo-container {
@@ -49,6 +55,12 @@
   font-weight: 600;
   color: #fff;
   letter-spacing: 0.5px;
+}
+
+.navbar-subtitle {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  line-height: 1;
 }
 
 @media (max-width: 768px) {

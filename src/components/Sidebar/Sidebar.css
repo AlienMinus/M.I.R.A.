@@ -156,7 +156,7 @@
   .sidebar {
     position: fixed;
     height: 100%;
-    z-index: 50;
+    z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -181,7 +181,7 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 40;
+    z-index: 150;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;

@@ -23,6 +23,17 @@ export default function Main({ chatId = 0, onMenuClick }) {
 
   useEffect(() => {
     localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messages));
+    
+    const firstUserMsg = messages.find((m) => m.role === "user");
+    if (firstUserMsg) {
+      const title = firstUserMsg.text.length > 30 
+        ? firstUserMsg.text.slice(0, 30) + "..." 
+        : firstUserMsg.text;
+      document.title = `${title} | M.I.R.A.`;
+    } else {
+      document.title = "M.I.R.A.";
+    }
+
     if (messages.length > 0) {
       localStorage.setItem(`mira-chat-timestamp-${chatId}`, Date.now().toString());
       
