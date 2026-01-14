@@ -58,89 +58,89 @@ export default function Container({ chatId = 0, onMenuClick }) {
   }, [messages, chatId]);
 
   const generateResponse = (userMessage = "") => {
-  setIsLoading(true);
-  setLastCopied(false);
+    setIsLoading(true);
+    setLastCopied(false);
 
-  setMessages((prev) => [...prev, { role: "ai", text: "" }]);
+    setMessages((prev) => [...prev, { role: "ai", text: "" }]);
 
-  const input = userMessage.toLowerCase().trim();
+    const input = userMessage.toLowerCase().trim();
 
-  // Prioritize longer matches (e.g., "git commit" over "git")
-  const sortedKeys = Object.keys(responsesData)
-    .filter((key) => key !== "__fallback__")
-    .sort((a, b) => b.length - a.length);
+    // Prioritize longer matches (e.g., "git commit" over "git")
+    const sortedKeys = Object.keys(responsesData)
+      .filter((key) => key !== "__fallback__")
+      .sort((a, b) => b.length - a.length);
 
-  let responseText = null;
-  let matchedKey = null;
+    let responseText = null;
+    let matchedKey = null;
 
-  for (const key of sortedKeys) {
-    if (input.includes(key.toLowerCase())) {
-      responseText = responsesData[key];
-      matchedKey = key;
-      break;
+    for (const key of sortedKeys) {
+      if (input.includes(key.toLowerCase())) {
+        responseText = responsesData[key];
+        matchedKey = key;
+        break;
+      }
     }
-  }
 
-  // If a generic key is matched (e.g., "joke"), check if there are numbered variations (e.g., "joke 1")
-  // and pick one randomly to provide variety.
-  if (matchedKey) {
-    const variations = Object.keys(responsesData).filter((k) => {
-      const lowerK = k.toLowerCase();
-      const lowerMatched = matchedKey.toLowerCase();
-      return (
-        lowerK.startsWith(lowerMatched + " ") &&
-        !isNaN(parseInt(lowerK.slice(lowerMatched.length + 1).trim()))
-      );
-    });
-
-    if (variations.length > 0) {
-      const randomKey =
-        variations[Math.floor(Math.random() * variations.length)];
-      responseText = responsesData[randomKey];
-    }
-  }
-
-  if (!responseText) {
-    responseText = responsesData.__fallback__ || "";
-  }
-  responseText = String(responseText);
-
-  let i = 0;
-
-  // Clear any existing timers
-  if (typingTimeoutRef.current) {
-    clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = null;
-  }
-  if (typingIntervalRef.current) {
-    clearInterval(typingIntervalRef.current);
-    typingIntervalRef.current = null;
-  }
-
-  typingTimeoutRef.current = setTimeout(() => {
-    typingIntervalRef.current = setInterval(() => {
-      setMessages((prev) => {
-        const updated = [...prev];
-        if (updated.length === 0) {
-          // Ensure an AI message exists to update
-          updated.push({ role: "ai", text: "" });
-        }
-        const last = { ...updated[updated.length - 1] };
-        last.text = String(responseText).slice(0, i + 1);
-        updated[updated.length - 1] = last;
-        return updated;
+    // If a generic key is matched (e.g., "joke"), check if there are numbered variations (e.g., "joke 1")
+    // and pick one randomly to provide variety.
+    if (matchedKey) {
+      const variations = Object.keys(responsesData).filter((k) => {
+        const lowerK = k.toLowerCase();
+        const lowerMatched = matchedKey.toLowerCase();
+        return (
+          lowerK.startsWith(lowerMatched + " ") &&
+          !isNaN(parseInt(lowerK.slice(lowerMatched.length + 1).trim()))
+        );
       });
 
-      i++;
-
-      if (i >= String(responseText).length) {
-        clearInterval(typingIntervalRef.current);
-        typingIntervalRef.current = null;
-        setIsLoading(false);
+      if (variations.length > 0) {
+        const randomKey =
+          variations[Math.floor(Math.random() * variations.length)];
+        responseText = responsesData[randomKey];
       }
-    }, 15);
-  }, 400);
-};
+    }
+
+    if (!responseText) {
+      responseText = responsesData.__fallback__ || "";
+    }
+    responseText = String(responseText);
+
+    let i = 0;
+
+    // Clear any existing timers
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      typingIntervalRef.current = setInterval(() => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          if (updated.length === 0) {
+            // Ensure an AI message exists to update
+            updated.push({ role: "ai", text: "" });
+          }
+          const last = { ...updated[updated.length - 1] };
+          last.text = String(responseText).slice(0, i + 1);
+          updated[updated.length - 1] = last;
+          return updated;
+        });
+
+        i++;
+
+        if (i >= String(responseText).length) {
+          clearInterval(typingIntervalRef.current);
+          typingIntervalRef.current = null;
+          setIsLoading(false);
+        }
+      }, 15);
+    }, 400);
+  };
 
   const handleSendMessage = (text) => {
     setMessages((prev) => [...prev, { role: "user", text }]);
