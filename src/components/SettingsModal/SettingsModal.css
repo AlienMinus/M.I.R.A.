@@ -129,3 +129,23 @@
 .modal-footer .cancel-btn:hover {
   background: #27272a;
 }
+
+.danger-zone {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #27272a;
+}
+
+.danger-zone label {
+  color: #ef4444;
+}
+
+.clear-history-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  border-color: #ef4444;
+  color: #ef4444;
+}

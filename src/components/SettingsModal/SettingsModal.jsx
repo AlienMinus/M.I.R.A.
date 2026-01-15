@@ -71,27 +71,11 @@ export default function SettingsModal({
             />
           </div>
 
-          <div
-            className="form-group"
-            style={{
-              marginTop: "20px",
-              paddingTop: "20px",
-              borderTop: "1px solid #27272a",
-            }}
-          >
-            <label style={{ color: "#ef4444" }}>Danger Zone</label>
+          <div className="form-group danger-zone">
+            <label>Danger Zone</label>
             <button
               onClick={onClearHistory}
-              className="suggestion-btn"
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                justifyContent: "center",
-                borderColor: "#ef4444",
-                color: "#ef4444",
-              }}
+              className="suggestion-btn clear-history-btn"
             >
               <FiTrash2 />
               Clear all chat history

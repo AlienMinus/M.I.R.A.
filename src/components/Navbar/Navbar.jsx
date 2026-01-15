@@ -30,7 +30,7 @@ export default function Navbar({ onMenuClick, isLoading }) {
 
   const models = [
     { value: "ion", label: "Ion - Ultra Flash" },
-    { value: "spark", label: "Spark - Fast" },
+    { value: "spark", label: "Spark - Light" },
     { value: "quantum", label: "Quantum - Reasoning" },
     { value: "neutron", label: "Neutron - Balanced" },
     { value: "cosmos", label: "Cosmos - Advanced" },
