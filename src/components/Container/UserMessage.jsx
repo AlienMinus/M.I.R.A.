@@ -75,22 +75,24 @@ export default function UserMessage({ text, files = [], isEditing, onEditStart, 
 
   return (
     <div className="user-message-container">
-      <div className="user-message-bubble">
-        {text}
-        {files.length > 0 && (
-          <div style={{ marginTop: "8px" }}>
-            <AttachmentPreview files={displayFiles} />
-          </div>
-        )}
+      {files.length > 0 && (
+        <div className="message-files">
+          <AttachmentPreview files={displayFiles} />
+        </div>
+      )}
+      <div className="message-row">
+        <button
+          className="edit-msg-btn"
+          onClick={onEditStart}
+          aria-label="Edit message"
+          style={{ visibility: isLoading ? "hidden" : "visible" }}
+        >
+          <FiEdit2 size={14} />
+        </button>
+        <div className="user-message-bubble">
+          {text}
+        </div>
       </div>
-      <button
-        className="edit-msg-btn"
-        onClick={onEditStart}
-        aria-label="Edit message"
-        style={{ visibility: isLoading ? "hidden" : "visible" }}
-      >
-        <FiEdit2 size={14} />
-      </button>
     </div>
   );
 }

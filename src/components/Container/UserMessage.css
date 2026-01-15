@@ -1,7 +1,31 @@
 .user-message-container {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 80%;
+  margin-left: auto;
+}
+
+/* File preview wrapper */
+.message-files {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+/* Override ChatInput styles for file preview within UserMessage */
+.message-files .file-preview-container {
+  justify-content: flex-end;
+  padding: 0;
+  margin: 0;
+}
+
+.message-row {
+  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   max-width: 100%;
   justify-content: flex-end;
 }
@@ -10,11 +34,13 @@
   background-color: #27272a;
   padding: 10px 16px;
   border-radius: 20px;
-  max-width: 80%;
   position: relative;
   color: white;
   line-height: 1.6;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: pre-wrap;
+  text-align: left;
 }
 
 .edit-msg-btn {
@@ -29,6 +55,7 @@
   align-items: center;
   justify-content: center;
   transition: opacity 0.2s, background-color 0.2s;
+  flex-shrink: 0;
 }
 
 .user-message-container:hover .edit-msg-btn {
@@ -98,6 +125,11 @@
 @media (max-width: 768px) {
   .user-message-container {
     width: 100%;
+    max-width: 100%;
+  }
+
+  .user-message-bubble {
+    max-width: 85%;
   }
 
   .edit-msg-btn {
