@@ -41,7 +41,11 @@
   color: #9ca3af;
   cursor: pointer;
   font-size: 18px;
-  padding: 6px;
+  padding: 4px;
+  margin-right: 10px;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
 }
 
 .icon-btn:hover {

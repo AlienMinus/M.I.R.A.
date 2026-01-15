@@ -89,6 +89,8 @@ export default function ChatHistory({
     else groupedChats["Older"].push(chat);
   });
 
+  if (isCollapsed) return null;
+
   return (
     <>
       {["Today", "Yesterday", "Previous 7 Days", "Older"].map((group) => {

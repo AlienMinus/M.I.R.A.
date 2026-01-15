@@ -62,13 +62,15 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
           </div>
         </div>
 
-        <div className="sidebar-section">
-      <SidebarItem icon={<FiPlus />} label="New chat" active collapsed={isCollapsed} onClick={onNewChat} />
+        <div className="sidebar-nav">
+          <SidebarItem icon={<FiPlus />} label="New chat" active collapsed={isCollapsed} onClick={onNewChat} />
           <SidebarItem icon={<FiSearch />} label="Search chats" collapsed={isCollapsed} />
           <SidebarItem icon={<FiImage />} label="Images" collapsed={isCollapsed} />
           <SidebarItem icon={<FiGrid />} label="Apps" collapsed={isCollapsed} />
           <SidebarItem icon={<FiFolder />} label="Projects" collapsed={isCollapsed} />
+        </div>
 
+        <div className="sidebar-section">
           <ChatHistory
             currentChatId={currentChatId}
             onSelectChat={onSelectChat}

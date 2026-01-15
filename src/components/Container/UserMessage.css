@@ -94,3 +94,13 @@
   background-color: #3f3f46;
   color: white;
 }
+
+@media (max-width: 768px) {
+  .user-message-container {
+    width: 100%;
+  }
+
+  .edit-msg-btn {
+    opacity: 1;
+  }
+}
