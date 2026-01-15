@@ -258,7 +258,7 @@ export default function Container({ chatId = 0, onMenuClick }) {
     <section
       className={`main ${messages.length > 0 ? "chat-active" : "chat-empty"}`}
     >
-      <Navbar onMenuClick={onMenuClick} />
+      <Navbar onMenuClick={onMenuClick} isLoading={isLoading} />
 
       <div className={`empty-state ${messages.length > 0 ? "fade-out" : ""}`}>
         <h1>What can I help with?</h1>
