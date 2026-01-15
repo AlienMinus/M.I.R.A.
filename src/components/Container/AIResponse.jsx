@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { FiCopy, FiCheck } from "react-icons/fi";
+import { FiCopy, FiCheck, FiCpu } from "react-icons/fi";
 import "./AIResponse.css";
 
 function CodeBlock({ node, inline, className, children, ...props }) {
@@ -90,8 +90,21 @@ function CopyMessageButton({ text }) {
   );
 }
 
-export default function AIResponse({ text }) {
+export default function AIResponse({ text, attachments }) {
   if (!text) {
+    if (attachments && attachments.length > 0) {
+      return (
+        <div className="ai-response-container">
+          <div className="ai-message-bubble analyzing" role="status" aria-live="polite">
+            <div className="analyzing-content">
+              <FiCpu className="analyzing-icon" />
+              <span>Analyzing... {attachments.length} file{attachments.length !== 1 ? 's' : ''}...</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="ai-response-container">
         <div className="ai-message-bubble" role="status" aria-live="polite">

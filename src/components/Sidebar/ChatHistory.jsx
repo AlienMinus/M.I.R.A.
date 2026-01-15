@@ -8,7 +8,8 @@ export default function ChatHistory({
   onNewChat, 
   setMobileOpen, 
   isCollapsed,
-  mobileOpen 
+  mobileOpen,
+  searchQuery
 }) {
   const [savedChats, setSavedChats] = useState([]);
   const activeChatRef = useRef(null);
@@ -31,7 +32,8 @@ export default function ChatHistory({
                   : "New Chat";
                 const timestampStr = localStorage.getItem(`mira-chat-timestamp-${id}`);
                 const timestamp = timestampStr ? parseInt(timestampStr, 10) : 0;
-                chats.push({ id, title, timestamp });
+                const content = messages.map((m) => m.text || "").join(" ");
+                chats.push({ id, title, timestamp, content });
               }
             }
           } catch (e) {
@@ -81,7 +83,14 @@ export default function ChatHistory({
   const sevenDaysAgo = new Date(today);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  savedChats.forEach((chat) => {
+  const filteredChats = searchQuery
+    ? savedChats.filter((chat) => 
+        chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (chat.content && chat.content.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : savedChats;
+
+  filteredChats.forEach((chat) => {
     const date = new Date(chat.timestamp);
     if (date >= today) groupedChats["Today"].push(chat);
     else if (date >= yesterday) groupedChats["Yesterday"].push(chat);
@@ -89,7 +98,32 @@ export default function ChatHistory({
     else groupedChats["Older"].push(chat);
   });
 
+  const getHighlightedText = (text, highlight) => {
+    if (!highlight.trim()) return text;
+    const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedHighlight})`, 'gi'));
+    return (
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === highlight.toLowerCase() ? (
+            <span key={i} style={{ color: "#fbbf24", backgroundColor: "rgba(251, 191, 36, 0.1)" }}>{part}</span>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
+
   if (isCollapsed) return null;
+
+  if (searchQuery && filteredChats.length === 0) {
+    return (
+      <div style={{ padding: "20px", textAlign: "center", color: "#71717a", fontSize: "0.875rem" }}>
+        No chats found
+      </div>
+    );
+  }
 
   return (
     <>
@@ -107,7 +141,7 @@ export default function ChatHistory({
               <SidebarItem
                 key={chat.id}
                 icon={<FiMessageSquare />}
-                label={chat.title}
+                label={searchQuery ? getHighlightedText(chat.title, searchQuery) : chat.title}
                 active={chat.id === currentChatId}
                 collapsed={isCollapsed}
                 onClick={() => { onSelectChat(chat.id); setMobileOpen(false); }}

@@ -31,7 +31,16 @@ export default function Container({ chatId = 0, onMenuClick }) {
   const notifyRef = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messages));
+    // Serialize messages, converting File objects to metadata for storage
+    const messagesToSave = messages.map((msg) => ({
+      ...msg,
+      files: msg.files ? msg.files.map((f) => ({
+        name: f.name,
+        size: f.size,
+        type: f.type
+      })) : []
+    }));
+    localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messagesToSave));
 
     const firstUserMsg = messages.find((m) => m.role === "user" && typeof m.text === "string");
     if (firstUserMsg && typeof firstUserMsg.text === "string") {
@@ -57,7 +66,7 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }
   }, [messages, chatId]);
 
-  const generateResponse = (userMessage = "") => {
+  const generateResponse = (userMessage = "", hasFiles = false) => {
     setIsLoading(true);
     setLastCopied(false);
 
@@ -139,12 +148,12 @@ export default function Container({ chatId = 0, onMenuClick }) {
           setIsLoading(false);
         }
       }, 15);
-    }, 400);
+    }, hasFiles ? 2000 : 400);
   };
 
-  const handleSendMessage = (text) => {
-    setMessages((prev) => [...prev, { role: "user", text }]);
-    generateResponse(text);
+  const handleSendMessage = (text, files = []) => {
+    setMessages((prev) => [...prev, { role: "user", text, files }]);
+    generateResponse(text, files.length > 0);
   };
 
   const handleRegenerate = () => {
@@ -153,6 +162,7 @@ export default function Container({ chatId = 0, onMenuClick }) {
     // Find the most recent user message
     const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
     const userText = lastUserMessage ? lastUserMessage.text : "";
+    const hasFiles = lastUserMessage?.files?.length > 0;
     // Remove last AI message if it's present
     setMessages((prev) => {
       const last = prev[prev.length - 1];
@@ -161,8 +171,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
       }
       return prev;
     });
-    if (userText) {
-      generateResponse(userText);
+    if (userText || hasFiles) {
+      generateResponse(userText, hasFiles);
     }
   }; 
 
@@ -183,14 +193,14 @@ export default function Container({ chatId = 0, onMenuClick }) {
     setEditingIndex(null);
   };
 
-  const saveEditedMessage = (index, newText) => {
-    if (!newText.trim()) return;
+  const saveEditedMessage = (index, newText, newFiles) => {
+    if (!newText.trim() && (!newFiles || newFiles.length === 0)) return;
     // Keep messages up to the edited one, update it, and discard the rest
     const newMessages = messages.slice(0, index);
-    newMessages.push({ role: "user", text: newText });
+    newMessages.push({ role: "user", text: newText, files: newFiles });
     setMessages(newMessages);
     setEditingIndex(null);
-    generateResponse(newText);
+    generateResponse(newText, newFiles?.length > 0);
   };
 
   const handleStop = () => {
@@ -282,9 +292,10 @@ export default function Container({ chatId = 0, onMenuClick }) {
               {msg.role === "user" ? (
                 <UserMessage
                   text={msg.text}
+                  files={msg.files}
                   isEditing={editingIndex === idx}
                   onEditStart={() => startEditing(idx)}
-                  onSave={(newText) => saveEditedMessage(idx, newText)}
+                  onSave={(newText, newFiles) => saveEditedMessage(idx, newText, newFiles)}
                   onCancel={cancelEditing}
                   isLoading={isLoading}
                 />
@@ -300,7 +311,10 @@ export default function Container({ chatId = 0, onMenuClick }) {
                     </div>
                   }
                 >
-                  <AIResponse text={msg.text} />
+                  <AIResponse 
+                    text={msg.text} 
+                    attachments={messages[idx - 1]?.role === "user" ? messages[idx - 1].files : []}
+                  />
                 </Suspense>
               )}
             </div>

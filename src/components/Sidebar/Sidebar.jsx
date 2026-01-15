@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FiPlus,
   FiSearch,
@@ -18,6 +18,9 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved ? JSON.parse(saved) : false;
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const sidebarRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
@@ -32,6 +35,17 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
     mediaQuery.addEventListener("change", handleMediaChange);
     return () => mediaQuery.removeEventListener("change", handleMediaChange);
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target) && isSearchActive) {
+        setIsSearchActive(false);
+        setSearchQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isSearchActive]);
 
   // Force expanded view when mobile menu is open so users can see labels
   const isCollapsed = mobileOpen ? false : collapsed;
@@ -57,7 +71,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
         className={`sidebar-overlay ${mobileOpen ? "active" : ""}`}
         onClick={() => setMobileOpen(false)}
       />
-      <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
+      <aside ref={sidebarRef} className={`sidebar ${isCollapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
           <div className="sidebar-brand">
             <img src="/proicon-bg.png" alt="MIRA" className="sidebar-logo" />
@@ -79,7 +93,47 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
 
         <div className="sidebar-nav">
           <SidebarItem icon={<FiPlus />} label="New chat" active collapsed={isCollapsed} onClick={handleNewChat} />
-          <SidebarItem icon={<FiSearch />} label="Search chats" collapsed={isCollapsed} />
+          {isSearchActive && !isCollapsed ? (
+            <div className="sidebar-item search-mode">
+              <div className="search-box">
+                <FiSearch className="search-icon" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => {
+                    if (!searchQuery) setIsSearchActive(false);
+                  }}
+                  className="search-input"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setIsSearchActive(false);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    aria-label="Clear search"
+                    className="search-clear-btn"
+                  >
+                    <FiX className="search-clear-icon" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <SidebarItem 
+              icon={<FiSearch />} 
+              label="Search chats" 
+              collapsed={isCollapsed} 
+              onClick={() => {
+                setCollapsed(false);
+                setIsSearchActive(true);
+              }}
+            />
+          )}
           <SidebarItem icon={<FiImage />} label="Images" collapsed={isCollapsed} />
           <SidebarItem icon={<FiGrid />} label="Apps" collapsed={isCollapsed} />
           <SidebarItem icon={<FiFolder />} label="Projects" collapsed={isCollapsed} />
@@ -93,6 +147,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
             setMobileOpen={setMobileOpen}
             isCollapsed={isCollapsed}
             mobileOpen={mobileOpen}
+            searchQuery={searchQuery}
           />
         </div>
 
