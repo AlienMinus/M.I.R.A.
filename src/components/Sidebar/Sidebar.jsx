@@ -36,6 +36,21 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
   // Force expanded view when mobile menu is open so users can see labels
   const isCollapsed = mobileOpen ? false : collapsed;
 
+  const handleNewChat = () => {
+    let maxId = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("mira-chat-") && !key.startsWith("mira-chat-timestamp-")) {
+        const id = parseInt(key.replace("mira-chat-", ""), 10);
+        if (!isNaN(id) && id > maxId) {
+          maxId = id;
+        }
+      }
+    }
+    onSelectChat(maxId + 1);
+    setMobileOpen(false);
+  };
+
   return (
     <>
       <div
@@ -63,7 +78,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
         </div>
 
         <div className="sidebar-nav">
-          <SidebarItem icon={<FiPlus />} label="New chat" active collapsed={isCollapsed} onClick={onNewChat} />
+          <SidebarItem icon={<FiPlus />} label="New chat" active collapsed={isCollapsed} onClick={handleNewChat} />
           <SidebarItem icon={<FiSearch />} label="Search chats" collapsed={isCollapsed} />
           <SidebarItem icon={<FiImage />} label="Images" collapsed={isCollapsed} />
           <SidebarItem icon={<FiGrid />} label="Apps" collapsed={isCollapsed} />

@@ -93,6 +93,7 @@
   border-radius: 6px;
   outline: none;
   cursor: pointer;
+  margin-right: -1rem;
   display: flex;
   align-items: center;
   justify-content: center;
