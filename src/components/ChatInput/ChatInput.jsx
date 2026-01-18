@@ -8,7 +8,6 @@ import {
   FiCpu,
   FiSend,
   FiSquare,
-  FiChevronRight,
   FiLayers,
   FiX,
   FiGithub,
@@ -395,22 +394,8 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
           <DropdownItem icon={<FiImage />} text="Create image" />
           <DropdownItem icon={<FiSearch />} text="Deep research" />
           <DropdownItem icon={<FiCpu />} text="Thinking" />
-          <DropdownItem 
-            icon={<BsThreeDots />} 
-            text="More" 
-            subItems={[
-              { 
-                icon: <HiGlobeAlt />, 
-                text: webSearchEnabled ? "Disable Web Search" : "Enable Web Search",
-                onClick: () => { setWebSearchEnabled(!webSearchEnabled); setOpen(false); }
-              },
-              { 
-                icon: <FiLayers />, 
-                text: "Connect Apps", 
-                onClick: () => { setOpen(false); setShowConnectApps(true); }
-              }
-            ]}
-          />
+          <DropdownItem icon={<HiGlobeAlt />} text={webSearchEnabled ? "Disable Web Search" : "Enable Web Search"} onClick={() => { setWebSearchEnabled(!webSearchEnabled); setOpen(false); }}/>
+          <DropdownItem icon={<FiLayers />} text="Connect Apps" onClick={() => { setShowConnectApps(true); setOpen(false); }} />
         </div>
       )}
 
@@ -505,42 +490,16 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   );
 }
 
-function DropdownItem({ icon, text, subItems }) {
-  const [isHovered, setIsHovered] = useState(false);
-
+function DropdownItem({ icon, text, onClick }) {
   return (
     <div 
       className="dropdown-item"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{ position: "relative", justifyContent: subItems ? "space-between" : "flex-start" }}
+      onClick={onClick}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <span className="dropdown-icon">{icon}</span>
         <span>{text}</span>
       </div>
-      {subItems && (
-        <>
-          <FiChevronRight size={16} style={{ color: "#9ca3af" }} />
-          {isHovered && (
-            <div className="nested-dropdown">
-              {subItems.map((item, index) => (
-                <div 
-                  key={index} 
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    item.onClick && item.onClick();
-                  }}
-                >
-                  <span className="dropdown-icon">{item.icon}</span>
-                  <span>{item.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }
