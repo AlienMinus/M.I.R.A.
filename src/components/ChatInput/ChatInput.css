@@ -146,6 +146,11 @@
     right: 0;
     margin-left: 0;
     box-shadow: -4px 4px 16px rgba(0, 0, 0, 0.6);
+    top: 100%;
+    bottom: auto;
+    left: 0;
+    right: auto;
+    width: 100%;
     border: 1px solid #3f3f46;
   }
 }
