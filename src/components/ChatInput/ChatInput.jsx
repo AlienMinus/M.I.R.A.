@@ -192,17 +192,26 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
     recognition.onstart = () => {
       setIsRecording(true);
       originalInputRef.current = input;
+      // Blur to prevent mobile keyboard interference which causes text duplication
+      if (textareaRef.current) {
+        textareaRef.current.blur();
+      }
       startVisualizer();
     };
 
     recognition.onresult = (event) => {
       let transcript = "";
       for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
+        const item = event.results[i][0].transcript;
+        // Add space between segments if missing
+        if (transcript && !transcript.endsWith(" ") && !item.startsWith(" ")) {
+          transcript += " ";
+        }
+        transcript += item;
       }
       
       const prefix = originalInputRef.current;
-      const spacer = prefix && !prefix.endsWith(" ") && transcript ? " " : "";
+      const spacer = prefix && !prefix.endsWith(" ") && transcript && !transcript.startsWith(" ") ? " " : "";
       setInput(prefix + spacer + transcript);
     };
 
