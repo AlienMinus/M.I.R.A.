@@ -189,9 +189,10 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
+    originalInputRef.current = input;
+
     recognition.onstart = () => {
       setIsRecording(true);
-      originalInputRef.current = input;
       // Blur to prevent mobile keyboard interference which causes text duplication
       if (textareaRef.current) {
         textareaRef.current.blur();
