@@ -7,8 +7,19 @@ import {
   FiSearch,
   FiCpu,
   FiSend,
-  FiSquare
+  FiSquare,
+  FiChevronRight,
+  FiLayers,
+  FiX,
+  FiGithub,
+  FiSlack,
+  FiHardDrive,
+  FiBook,
+  FiCheck,
+  FiLoader
 } from "react-icons/fi";
+import { HiGlobeAlt } from "react-icons/hi2";
+import { BsThreeDots } from "react-icons/bs";
 import "./ChatInput.css";
 import Attachment from "./Attachment";
 import AttachmentPreview from "./AttachmentPreview";
@@ -29,6 +40,17 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const audioContextRef = useRef(null);
   const streamRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const [showConnectApps, setShowConnectApps] = useState(false);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const prevLoading = useRef(isLoading);
+
+  useEffect(() => {
+    if (prevLoading.current && !isLoading) {
+      setIsSearching(false);
+    }
+    prevLoading.current = isLoading;
+  }, [isLoading]);
 
   // Close on outside click
   useEffect(() => {
@@ -283,11 +305,16 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
 
     // Send message to parent
     if (onSendMessage) {
-      onSendMessage(input, files.map(f => f.file));
+      onSendMessage(input, files.map(f => f.file), webSearchEnabled);
+    }
+
+    if (webSearchEnabled) {
+      setIsSearching(true);
     }
 
     setInput("");
     setFiles([]);
+    setWebSearchEnabled(false);
   };
 
   const handleKeyDown = (e) => {
@@ -359,11 +386,43 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
           <DropdownItem icon={<FiImage />} text="Create image" />
           <DropdownItem icon={<FiSearch />} text="Deep research" />
           <DropdownItem icon={<FiCpu />} text="Thinking" />
+          <DropdownItem 
+            icon={<BsThreeDots />} 
+            text="More" 
+            subItems={[
+              { 
+                icon: <HiGlobeAlt />, 
+                text: webSearchEnabled ? "Disable Web Search" : "Enable Web Search",
+                onClick: () => { setWebSearchEnabled(!webSearchEnabled); setOpen(false); }
+              },
+              { 
+                icon: <FiLayers />, 
+                text: "Connect Apps", 
+                onClick: () => { setOpen(false); setShowConnectApps(true); }
+              }
+            ]}
+          />
         </div>
       )}
 
       <form className="chat-input" onSubmit={handleSubmit}>
         <AttachmentPreview files={files} onRemove={removeFile} />
+
+        {(webSearchEnabled || isSearching) && (
+          <div className="search-active-indicator">
+            {isSearching ? (
+              <FiLoader className="search-spinner" />
+            ) : (
+              <HiGlobeAlt />
+            )}
+            <span>{isSearching ? "Searching web..." : "Web Search Enabled"}</span>
+            {!isSearching && (
+              <button type="button" onClick={() => setWebSearchEnabled(false)} aria-label="Disable web search">
+                <FiX />
+              </button>
+            )}
+          </div>
+        )}
 
         <button
           type="button"
@@ -422,7 +481,7 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
             {isLoading ? (
               <FiSquare fill="currentColor" size={14} />
             ) : isRecording ? (
-              <FiSquare fill="#ef4444" style={{ color: "#ef4444" }} size={14} />
+              <FiSquare fill="#44efc1" style={{ color: "#44efc1" }} size={14} />
             ) : (input.trim() || files.length > 0) ? (
               <FiSend />
             ) : (
@@ -431,15 +490,94 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
           </button>
         )}
       </form>
+
+      {showConnectApps && <ConnectAppsModal onClose={() => setShowConnectApps(false)} />}
     </div>
   );
 }
 
-function DropdownItem({ icon, text }) {
+function DropdownItem({ icon, text, subItems }) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className="dropdown-item">
-      <span className="dropdown-icon">{icon}</span>
-      <span>{text}</span>
+    <div 
+      className="dropdown-item"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ position: "relative", justifyContent: subItems ? "space-between" : "flex-start" }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <span className="dropdown-icon">{icon}</span>
+        <span>{text}</span>
+      </div>
+      {subItems && (
+        <>
+          <FiChevronRight size={16} style={{ color: "#9ca3af" }} />
+          {isHovered && (
+            <div className="nested-dropdown">
+              {subItems.map((item, index) => (
+                <div 
+                  key={index} 
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    item.onClick && item.onClick();
+                  }}
+                >
+                  <span className="dropdown-icon">{item.icon}</span>
+                  <span>{item.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ConnectAppsModal({ onClose }) {
+  const [apps, setApps] = useState([
+    { id: "gdrive", name: "Google Drive", icon: <FiHardDrive />, connected: true },
+    { id: "notion", name: "Notion", icon: <FiBook />, connected: false },
+    { id: "github", name: "GitHub", icon: <FiGithub />, connected: false },
+    { id: "slack", name: "Slack", icon: <FiSlack />, connected: false },
+  ]);
+
+  const toggleApp = (id) => {
+    setApps(apps.map(app => 
+      app.id === id ? { ...app, connected: !app.connected } : app
+    ));
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h2>Connect Apps</h2>
+          <button className="close-btn" onClick={onClose}><FiX /></button>
+        </div>
+        <div className="modal-body">
+          <div className="apps-list">
+            {apps.map((app) => (
+              <div key={app.id} className="app-item">
+                <div className="app-info">
+                  <span className="app-icon">{app.icon}</span>
+                  <span>{app.name}</span>
+                </div>
+                <label className="switch">
+                  <input 
+                    type="checkbox" 
+                    checked={app.connected} 
+                    onChange={() => toggleApp(app.id)}
+                  />
+                  <span className="slider"></span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
