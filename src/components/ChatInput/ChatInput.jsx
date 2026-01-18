@@ -19,6 +19,7 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
   const dropdownRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -38,6 +39,13 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Check for speech recognition support
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
+      setIsSpeechSupported(true);
+    }
   }, []);
 
   // Auto-resize textarea
@@ -68,6 +76,11 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   };
 
   const startVisualizer = async () => {
+    // On mobile devices, accessing getUserMedia while SpeechRecognition is active
+    // causes a conflict ("Chrome is recording") and stops recognition.
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) return;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -339,29 +352,31 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
           />
         )}
 
-        <button
-          type={(input.trim() || files.length > 0 || isLoading) && !isRecording ? "submit" : "button"}
-          className={`icon-btn ${isRecording ? "recording" : ""}`}
-          onClick={(e) => {
-            if (isRecording) {
-              handleVoiceInput();
-            } else if (!input.trim() && files.length === 0 && !isLoading) {
-              handleVoiceInput();
-            }
-          }}
-          aria-label={isLoading ? "Stop generating" : isRecording ? "Stop recording" : (input.trim() || files.length > 0) ? "Send" : "Voice input"}
-          data-tooltip={isLoading ? "Stop generating" : isRecording ? "Recording..." : (input.trim() || files.length > 0) ? "Send" : "Voice Input"}
-        >
-          {isLoading ? (
-            <FiSquare fill="currentColor" size={14} />
-          ) : isRecording ? (
-            <FiSquare fill="#ef4444" style={{ color: "#ef4444" }} size={14} />
-          ) : (input.trim() || files.length > 0) ? (
-            <FiSend />
-          ) : (
-            <FiMic />
-          )}
-        </button>
+        {(input.trim() || files.length > 0 || isLoading || isRecording || isSpeechSupported) && (
+          <button
+            type={(input.trim() || files.length > 0 || isLoading) && !isRecording ? "submit" : "button"}
+            className={`icon-btn ${isRecording ? "recording" : ""}`}
+            onClick={(e) => {
+              if (isRecording) {
+                handleVoiceInput();
+              } else if (!input.trim() && files.length === 0 && !isLoading) {
+                handleVoiceInput();
+              }
+            }}
+            aria-label={isLoading ? "Stop generating" : isRecording ? "Stop recording" : (input.trim() || files.length > 0) ? "Send" : "Voice input"}
+            data-tooltip={isLoading ? "Stop generating" : isRecording ? "Recording..." : (input.trim() || files.length > 0) ? "Send" : "Voice Input"}
+          >
+            {isLoading ? (
+              <FiSquare fill="currentColor" size={14} />
+            ) : isRecording ? (
+              <FiSquare fill="#ef4444" style={{ color: "#ef4444" }} size={14} />
+            ) : (input.trim() || files.length > 0) ? (
+              <FiSend />
+            ) : (
+              <FiMic />
+            )}
+          </button>
+        )}
       </form>
     </div>
   );
