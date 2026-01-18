@@ -223,7 +223,7 @@
 
 .audio-visualizer {
   position: absolute;
-  bottom: 8px;
+  bottom: 12px;
   right: 50px;
   pointer-events: none;
   opacity: 0.8;
