@@ -507,28 +507,9 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
 
 function DropdownItem({ icon, text, subItems }) {
   const [isHovered, setIsHovered] = useState(false);
-  const itemRef = useRef(null);
-
-  useEffect(() => {
-    if (!isHovered) return;
-
-    function handleClickOutside(event) {
-      if (itemRef.current && !itemRef.current.contains(event.target)) {
-        setIsHovered(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [isHovered]);
 
   return (
     <div 
-      ref={itemRef}
       className="dropdown-item"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
