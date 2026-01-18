@@ -201,9 +201,29 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
     };
 
     recognition.onresult = (event) => {
-      let transcript = "";
+      // Safety check: ignore results from previous instances
+      if (recognition !== recognitionRef.current) return;
+
+      // 1. Deduplicate intra-session results (Android bug where results accumulate)
+      const results = [];
       for (let i = 0; i < event.results.length; i++) {
-        const item = event.results[i][0].transcript;
+        results.push(event.results[i][0].transcript);
+      }
+
+      const uniqueResults = results.filter((text, index) => {
+        if (index + 1 < results.length) {
+          const nextText = results[index + 1];
+          // Check if current text is a prefix of the next text
+          if (nextText.toLowerCase().startsWith(text.toLowerCase().trim())) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      let transcript = "";
+      for (let i = 0; i < uniqueResults.length; i++) {
+        const item = uniqueResults[i];
         // Add space between segments if missing
         if (transcript && !transcript.endsWith(" ") && !item.startsWith(" ")) {
           transcript += " ";
@@ -212,8 +232,17 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
       }
       
       const prefix = originalInputRef.current;
-      const spacer = prefix && !prefix.endsWith(" ") && transcript && !transcript.startsWith(" ") ? " " : "";
-      setInput(prefix + spacer + transcript);
+      
+      // 2. Deduplicate prefix (Android bug where engine reads context)
+      const normalizedTranscript = transcript.toLowerCase().trim();
+      const normalizedPrefix = prefix.toLowerCase().trim();
+      
+      if (normalizedPrefix && normalizedTranscript.startsWith(normalizedPrefix)) {
+        setInput(transcript);
+      } else {
+        const spacer = prefix && !prefix.endsWith(" ") && transcript && !transcript.startsWith(" ") ? " " : "";
+        setInput(prefix + spacer + transcript);
+      }
     };
 
     recognition.onerror = (event) => {
