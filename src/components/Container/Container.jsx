@@ -38,7 +38,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
         name: f.name,
         size: f.size,
         type: f.type
-      })) : []
+      })) : [],
+      searchResults: msg.searchResults || null
     }));
     localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messagesToSave));
 
@@ -66,7 +67,7 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }
   }, [messages, chatId]);
 
-  const generateResponse = (userMessage = "", hasFiles = false) => {
+  const generateResponse = (userMessage = "", hasFiles = false, isWebSearch = false, searchResults = null) => {
     setIsLoading(true);
     setLastCopied(false);
 
@@ -82,11 +83,21 @@ export default function Container({ chatId = 0, onMenuClick }) {
     let responseText = null;
     let matchedKey = null;
 
-    for (const key of sortedKeys) {
-      if (input.includes(key.toLowerCase())) {
-        responseText = responsesData[key];
-        matchedKey = key;
-        break;
+    if (isWebSearch) {
+      if (searchResults && searchResults.length > 0) {
+        responseText = `I searched the web for "${userMessage}" and found ${searchResults.length} results.\n\n`;
+        responseText += searchResults.map(r => `**${r.title}**\n${r.snippet}`).join("\n\n");
+        responseText += "\n\nIs there anything specific you would like to know from these results?";
+      } else {
+        responseText = `I searched the web for "${userMessage}" but found no results. Try rephrasing your query.`;
+      }
+    } else {
+      for (const key of sortedKeys) {
+        if (input.includes(key.toLowerCase())) {
+          responseText = responsesData[key];
+          matchedKey = key;
+          break;
+        }
       }
     }
 
@@ -151,9 +162,9 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }, hasFiles ? 2000 : 400);
   };
 
-  const handleSendMessage = (text, files = []) => {
-    setMessages((prev) => [...prev, { role: "user", text, files }]);
-    generateResponse(text, files.length > 0);
+  const handleSendMessage = (text, files = [], isWebSearch = false, searchResults = null) => {
+    setMessages((prev) => [...prev, { role: "user", text, files, searchResults }]);
+    generateResponse(text, files.length > 0, isWebSearch, searchResults);
   };
 
   const handleRegenerate = () => {
@@ -163,6 +174,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
     const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
     const userText = lastUserMessage ? lastUserMessage.text : "";
     const hasFiles = lastUserMessage?.files?.length > 0;
+    const isWebSearch = !!lastUserMessage?.searchResults;
+    const searchResults = lastUserMessage?.searchResults || null;
     // Remove last AI message if it's present
     setMessages((prev) => {
       const last = prev[prev.length - 1];
@@ -171,8 +184,8 @@ export default function Container({ chatId = 0, onMenuClick }) {
       }
       return prev;
     });
-    if (userText || hasFiles) {
-      generateResponse(userText, hasFiles);
+    if (userText || hasFiles || isWebSearch) {
+      generateResponse(userText, hasFiles, isWebSearch, searchResults);
     }
   }; 
 
@@ -290,15 +303,34 @@ export default function Container({ chatId = 0, onMenuClick }) {
           {messages.map((msg, idx) => (
             <div key={idx} className={`message ${msg.role}`}>
               {msg.role === "user" ? (
-                <UserMessage
-                  text={msg.text}
-                  files={msg.files}
-                  isEditing={editingIndex === idx}
-                  onEditStart={() => startEditing(idx)}
-                  onSave={(newText, newFiles) => saveEditedMessage(idx, newText, newFiles)}
-                  onCancel={cancelEditing}
-                  isLoading={isLoading}
-                />
+                <div className="user-message-wrapper">
+                  <UserMessage
+                    text={msg.text}
+                    files={msg.files}
+                    isEditing={editingIndex === idx}
+                    onEditStart={() => startEditing(idx)}
+                    onSave={(newText, newFiles) => saveEditedMessage(idx, newText, newFiles)}
+                    onCancel={cancelEditing}
+                    isLoading={isLoading}
+                  />
+                  {msg.searchResults && msg.searchResults.length > 0 && (
+                    <div className="search-results-grid">
+                      {msg.searchResults.map((result, i) => (
+                        <a 
+                          key={i} 
+                          href={result.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="search-result-card"
+                        >
+                          <h4 className="search-result-title">{result.title}</h4>
+                          <p className="search-result-snippet">{result.snippet}</p>
+                          <span className="search-result-source">{new URL(result.link).hostname}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <Suspense
                   fallback={

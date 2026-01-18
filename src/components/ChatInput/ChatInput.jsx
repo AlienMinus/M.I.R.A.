@@ -23,6 +23,7 @@ import { BsThreeDots } from "react-icons/bs";
 import "./ChatInput.css";
 import Attachment from "./Attachment";
 import AttachmentPreview from "./AttachmentPreview";
+import { searchWeb } from "../../utils/googleSearch";
 
 export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const [open, setOpen] = useState(false);
@@ -287,7 +288,7 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
     recognition.start();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (isRecording) {
@@ -303,18 +304,26 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
       return;
     }
 
-    // Send message to parent
-    if (onSendMessage) {
-      onSendMessage(input, files.map(f => f.file), webSearchEnabled);
-    }
-
-    if (webSearchEnabled) {
-      setIsSearching(true);
-    }
+    const currentInput = input;
+    const currentFiles = files;
+    const isWebSearch = webSearchEnabled;
 
     setInput("");
     setFiles([]);
     setWebSearchEnabled(false);
+
+    let searchResults = null;
+
+    if (isWebSearch) {
+      setIsSearching(true);
+      searchResults = await searchWeb(currentInput);
+      setIsSearching(false);
+    }
+
+    // Send message to parent
+    if (onSendMessage) {
+      onSendMessage(currentInput, currentFiles.map(f => f.file), isWebSearch, searchResults);
+    }
   };
 
   const handleKeyDown = (e) => {
