@@ -12,6 +12,7 @@
   width: 100%;
   max-width: 750px;
   background: #1e1e1e;
+  position: relative;
   border: 1px solid #2a2a2a;
   border-radius: 40px;
   display: flex;
@@ -48,6 +49,7 @@
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  position: relative;
 }
 
 .icon-btn:hover {
@@ -200,4 +202,54 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.icon-btn.recording {
+  animation: pulse 1.5s infinite;
+  border-radius: 50%;
+}
+
+.audio-visualizer {
+  position: absolute;
+  bottom: 8px;
+  right: 50px;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Tooltip */
+.icon-btn[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  background: #2a2a2a;
+  color: #e4e4e7;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeIn 0.2s forwards;
+  border: 1px solid #3f3f46;
+  z-index: 50;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
 }

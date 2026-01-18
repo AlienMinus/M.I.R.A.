@@ -18,8 +18,15 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const [input, setInput] = useState("");
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const dropdownRef = useRef(null);
   const textareaRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const originalInputRef = useRef("");
+  const canvasRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const streamRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
   // Close on outside click
   useEffect(() => {
@@ -41,8 +48,175 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
     }
   }, [input]);
 
+  const stopVisualizer = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  };
+
+  const startVisualizer = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+      audioContextRef.current = audioCtx;
+      
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      
+      const draw = () => {
+        animationFrameRef.current = requestAnimationFrame(draw);
+        analyser.getByteTimeDomainData(dataArray);
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = "#a855f7";
+        
+        const gradient = ctx.createLinearGradient(0, 0, width, 0);
+        gradient.addColorStop(0, "#ef4444");
+        gradient.addColorStop(0.5, "#a855f7");
+        gradient.addColorStop(1, "#3b82f6");
+        ctx.strokeStyle = gradient;
+        
+        ctx.beginPath();
+        
+        // Zero-crossing detection to stabilize the wave
+        let zeroCross = -1;
+        for (let i = 0; i < bufferLength / 2; i++) {
+          if (dataArray[i] < 128 && dataArray[i + 1] >= 128) {
+            zeroCross = i;
+            break;
+          }
+        }
+        
+        const startIndex = zeroCross === -1 ? 0 : zeroCross;
+        const drawLength = Math.floor(bufferLength / 3);
+        const sliceWidth = width * 1.0 / drawLength;
+        let x = 0;
+        
+        for(let i = 0; i < drawLength; i++) {
+          const index = startIndex + i;
+          const val = index < bufferLength ? dataArray[index] : 128;
+          const v = val / 128.0;
+          const y = v * height / 2;
+          
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          
+          x += sliceWidth;
+        }
+        
+        ctx.stroke();
+      };
+      draw();
+    } catch (err) {
+      console.error("Visualizer init error:", err);
+    }
+  };
+
+  // Cleanup recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      stopVisualizer();
+    };
+  }, []);
+
+  const handleVoiceInput = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      stopVisualizer();
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      originalInputRef.current = input;
+      startVisualizer();
+    };
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      
+      const prefix = originalInputRef.current;
+      const spacer = prefix && !prefix.endsWith(" ") && transcript ? " " : "";
+      setInput(prefix + spacer + transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsRecording(false);
+      stopVisualizer();
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      stopVisualizer();
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      stopVisualizer();
+      setIsRecording(false);
+    }
+
     if (!input.trim() && files.length === 0 && !isLoading) return;
 
     if (isLoading) {
@@ -152,16 +326,41 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
             setOpen(false);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything"
+          placeholder={isRecording ? "Speak Something..." : "Ask anything"}
           rows={1}
         />
+        
+        {isRecording && (
+          <canvas 
+            ref={canvasRef} 
+            className="audio-visualizer" 
+            width={100} 
+            height={30} 
+          />
+        )}
 
         <button
-          type={input.trim() || files.length > 0 || isLoading ? "submit" : "button"}
-          className="icon-btn"
-          aria-label={isLoading ? "Stop generating" : (input.trim() || files.length > 0) ? "Send" : "Voice input"}
+          type={(input.trim() || files.length > 0 || isLoading) && !isRecording ? "submit" : "button"}
+          className={`icon-btn ${isRecording ? "recording" : ""}`}
+          onClick={(e) => {
+            if (isRecording) {
+              handleVoiceInput();
+            } else if (!input.trim() && files.length === 0 && !isLoading) {
+              handleVoiceInput();
+            }
+          }}
+          aria-label={isLoading ? "Stop generating" : isRecording ? "Stop recording" : (input.trim() || files.length > 0) ? "Send" : "Voice input"}
+          data-tooltip={isLoading ? "Stop generating" : isRecording ? "Recording..." : (input.trim() || files.length > 0) ? "Send" : "Voice Input"}
         >
-          {isLoading ? <FiSquare fill="currentColor" size={14} /> : (input.trim() || files.length > 0) ? <FiSend /> : <FiMic />}
+          {isLoading ? (
+            <FiSquare fill="currentColor" size={14} />
+          ) : isRecording ? (
+            <FiSquare fill="#ef4444" style={{ color: "#ef4444" }} size={14} />
+          ) : (input.trim() || files.length > 0) ? (
+            <FiSend />
+          ) : (
+            <FiMic />
+          )}
         </button>
       </form>
     </div>
