@@ -20,6 +20,7 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef(null);
   const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -45,6 +46,11 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   useEffect(() => {
     if (typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition)) {
       setIsSpeechSupported(true);
+    }
+    
+    // Check if mobile
+    if (typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      setIsMobile(true);
     }
   }, []);
 
@@ -78,7 +84,6 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const startVisualizer = async () => {
     // On mobile devices, accessing getUserMedia while SpeechRecognition is active
     // causes a conflict ("Chrome is recording") and stops recognition.
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isMobile) return;
 
     try {
@@ -383,12 +388,21 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
         />
         
         {isRecording && (
-          <canvas 
-            ref={canvasRef} 
-            className="audio-visualizer" 
-            width={100} 
-            height={30} 
-          />
+          !isMobile ? (
+            <canvas 
+              ref={canvasRef} 
+              className="audio-visualizer" 
+              width={100} 
+              height={30} 
+            />
+          ) : (
+            <div className="mobile-visualizer">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          )
         )}
 
         {(input.trim() || files.length > 0 || isLoading || isRecording || isSpeechSupported) && (
