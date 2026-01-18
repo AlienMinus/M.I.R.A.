@@ -167,7 +167,7 @@
   .nested-dropdown .dropdown-item:nth-child(1) { animation-delay: 0.05s; }
   .nested-dropdown .dropdown-item:nth-child(2) { animation-delay: 0.1s; }
   }
-}
+
 
 .file-preview-container {
   display: flex;
