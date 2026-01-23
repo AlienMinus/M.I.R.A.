@@ -1,0 +1,72 @@
+[
+  {
+    "id": "tiva",
+    "label": "T.I.V.A.",
+    "image": "https://tiva-seven.vercel.app/logo.png",
+    "desc": "TIVA -Technology-driven Intelligent Virtual Assistant",
+    "link": "https://tiva-seven.vercel.app/"
+  },
+  {
+    "id": "packages",
+    "label": "Packages",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=PKG",
+    "desc": "Manage installed packages",
+    "link": "#"
+  },
+  {
+    "id": "integrations",
+    "label": "Integrations",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=INT",
+    "desc": "Configure third-party integrations",
+    "link": "#"
+  },
+  {
+    "id": "settings",
+    "label": "Settings",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=SET",
+    "desc": "Manage application settings",
+    "link": "#"
+  },
+  {
+    "id": "users",
+    "label": "Users",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=USR",
+    "desc": "Manage user accounts and permissions",
+    "link": "#"
+  },
+  {
+    "id": "analytics",
+    "label": "Analytics",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=ANA",
+    "desc": "View system analytics and reports",
+    "link": "#"
+  },
+  {
+    "id": "security",
+    "label": "Security",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=SEC",
+    "desc": "Configure security settings and logs",
+    "link": "#"
+  },
+  {
+    "id": "database",
+    "label": "Database",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=DB",
+    "desc": "Manage database connections",
+    "link": "#"
+  },
+  {
+    "id": "cloud",
+    "label": "Cloud",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=CLD",
+    "desc": "Manage cloud resources",
+    "link": "#"
+  },
+  {
+    "id": "support",
+    "label": "Support",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=SUP",
+    "desc": "Contact support and view documentation",
+    "link": "#"
+  }
+]

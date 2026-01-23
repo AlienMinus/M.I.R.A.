@@ -13,7 +13,7 @@ import SidebarItem from "./SidebarItem";
 import ChatHistory from "./ChatHistory";
 import "./Sidebar.css";
 
-export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, onOpenSettings, onNewChat, onSelectChat, currentChatId }) {
+export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, onOpenSettings, onNewChat, onSelectChat, onShowApps, currentChatId }) {
   const [collapsed, setCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved ? JSON.parse(saved) : false;
@@ -135,7 +135,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
             />
           )}
           <SidebarItem icon={<FiImage />} label="Images" collapsed={isCollapsed} />
-          <SidebarItem icon={<FiGrid />} label="Apps" collapsed={isCollapsed} />
+          <SidebarItem icon={<FiGrid />} label="Apps" collapsed={isCollapsed} onClick={onShowApps} />
           <SidebarItem icon={<FiFolder />} label="Projects" collapsed={isCollapsed} />
         </div>
 
