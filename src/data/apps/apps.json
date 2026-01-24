@@ -1,5 +1,12 @@
 [
   {
+    "id": "vichark",
+    "label": "V.I.C.H.A.R.K",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=V",
+    "desc": "Virtual Intelligence for Constitutional Heuristics, Analysis, Research & Knowledge",
+    "link": "#"
+  },
+  {
     "id": "tiva",
     "label": "T.I.V.A.",
     "image": "https://tiva-seven.vercel.app/logo.png",
@@ -7,66 +14,59 @@
     "link": "https://tiva-seven.vercel.app/"
   },
   {
-    "id": "packages",
-    "label": "Packages",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=PKG",
-    "desc": "Manage installed packages",
+    "id": "eli",
+    "label": "E.L.I.",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=ELI",
+    "desc": "Enhanced Learning Interface",
     "link": "#"
   },
   {
-    "id": "integrations",
-    "label": "Integrations",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=INT",
-    "desc": "Configure third-party integrations",
+    "id": "krish",
+    "label": "K.R.I.S.H.",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=KRISH",
+    "desc": "Knowledge, Research & Intelligence au Sabu Haba",
     "link": "#"
   },
   {
-    "id": "settings",
-    "label": "Settings",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=SET",
-    "desc": "Manage application settings",
+    "id": "kyra",
+    "label": "K.Y.R.A.",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=KYRA",
+    "desc": "Knowledge-Yielding Responsive Assistant",
     "link": "#"
   },
   {
-    "id": "users",
-    "label": "Users",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=USR",
-    "desc": "Manage user accounts and permissions",
+    "id": "loki",
+    "label": "L.O.K.I.",
+    "image": "https://github.com/kamal-linku/LOKI/blob/main/src/assets/loki_logo.png/?raw=true",
+    "desc": "Logic Optimization & Knowledge Interface",
     "link": "#"
   },
   {
-    "id": "analytics",
-    "label": "Analytics",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=ANA",
-    "desc": "View system analytics and reports",
+    "id": "sage",
+    "label": "S.A.G.E.",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=SAGE",
+    "desc": "Smart Assistant for General Exploration",
     "link": "#"
   },
   {
-    "id": "security",
-    "label": "Security",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=SEC",
-    "desc": "Configure security settings and logs",
+    "id": "surya-ai",
+    "label": "Surya-AI",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=S",
+    "desc": "ChatBot by Suryakanta-Devx",
     "link": "#"
   },
   {
-    "id": "database",
-    "label": "Database",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=DB",
-    "desc": "Manage database connections",
+    "id": "bitu",
+    "label": "B.I.T.U.",
+    "image": "https://placehold.co/64x64/3f3f46/fff?text=BITU",
+    "desc": "",
     "link": "#"
   },
   {
-    "id": "cloud",
-    "label": "Cloud",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=CLD",
-    "desc": "Manage cloud resources",
-    "link": "#"
-  },
-  {
-    "id": "support",
-    "label": "Support",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=SUP",
-    "desc": "Contact support and view documentation",
-    "link": "#"
+    "id": "c--",
+    "label": "C--",
+    "image": "https://c-minus.vercel.app/favicon.png",
+    "desc": "Live Script Notebook for C Programming.",
+    "link": "https://c-minus.vercel.app/"
   }
 ]
