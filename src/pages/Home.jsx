@@ -23,8 +23,23 @@ export default function Home() {
   };
 
   const handleNewChat = () => {
-    setChatId((prev) => prev + 1);
+    let maxId = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("mira-chat-") && !key.startsWith("mira-chat-timestamp-")) {
+        const id = parseInt(key.replace("mira-chat-", ""), 10);
+        if (!isNaN(id) && id > maxId) {
+          maxId = id;
+        }
+      }
+    }
+    setChatId(maxId + 1);
     setMobileOpen(false);
+    setView("chat");
+  };
+
+  const handleSelectChat = (id) => {
+    setChatId(id);
     setView("chat");
   };
 
@@ -49,7 +64,7 @@ export default function Home() {
         setMobileOpen={setMobileOpen}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onNewChat={handleNewChat}
-        onSelectChat={setChatId}
+        onSelectChat={handleSelectChat}
         onShowApps={() => { setView("apps"); setMobileOpen(false); }}
         currentChatId={chatId}
       />
