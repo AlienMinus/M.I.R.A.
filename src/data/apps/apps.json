@@ -44,9 +44,9 @@
   {
     "id": "sage",
     "label": "S.A.G.E.",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=SAGE",
+    "image": "https://sage-blond.vercel.app/sage2.png",
     "desc": "Smart Assistant for General Exploration",
-    "link": "#"
+    "link": "https://sage-blond.vercel.app/"
   },
   {
     "id": "surya-ai",
