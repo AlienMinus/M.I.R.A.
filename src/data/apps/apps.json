@@ -39,7 +39,7 @@
     "label": "L.O.K.I.",
     "image": "https://github.com/kamal-linku/LOKI/blob/main/src/assets/loki_logo.png/?raw=true",
     "desc": "Logic Optimization & Knowledge Interface",
-    "link": "#"
+    "link": "https://loki-amber.vercel.app/"
   },
   {
     "id": "sage",
@@ -59,7 +59,7 @@
     "id": "bitu",
     "label": "B.I.T.U.",
     "image": "https://placehold.co/64x64/3f3f46/fff?text=BITU",
-    "desc": "",
+    "desc": "Built-in Intelligence for Technical Users",
     "link": "#"
   },
   {
