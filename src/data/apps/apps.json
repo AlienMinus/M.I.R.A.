@@ -2,14 +2,14 @@
   {
     "id": "vichark",
     "label": "V.I.C.H.A.R.K",
-    "image": "VICHARK-bg.png",
+    "image": "/VICHARK-bg.png",
     "desc": "Virtual Intelligence for Constitutional Heuristics, Analysis, Research & Knowledge",
     "link": "#"
   },
   {
     "id": "mira",
     "label": "M.I.R.A.",
-    "image": "proicon.png",
+    "image": "/favicon.png",
     "desc": "Multipurpose Intelligence for Research & Automation",
     "link": "https://m-i-r-a.vercel.app/"
   },
