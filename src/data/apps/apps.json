@@ -23,9 +23,9 @@
   {
     "id": "krish",
     "label": "K.R.I.S.H.",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=KRISH",
+    "image": "https://k-r-i-s-h.vercel.app/logo.png",
     "desc": "Knowledge, Research & Intelligence au Sabu Haba",
-    "link": "#"
+    "link": "https://k-r-i-s-h.vercel.app/"
   },
   {
     "id": "kyra",
@@ -58,9 +58,9 @@
   {
     "id": "bitu",
     "label": "B.I.T.U.",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=BITU",
+    "image": "https://b-i-t-u.vercel.app/the-bitu.png",
     "desc": "Built-in Intelligence for Technical Users",
-    "link": "#"
+    "link": "https://b-i-t-u.vercel.app/"
   },
   {
     "id": "c--",
