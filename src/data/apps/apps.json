@@ -2,14 +2,14 @@
   {
     "id": "vichark",
     "label": "V.I.C.H.A.R.K",
-    "image": "https://placehold.co/64x64/ffffff/000000?text=V",
+    "image": "VICHARK-bg.png",
     "desc": "Virtual Intelligence for Constitutional Heuristics, Analysis, Research & Knowledge",
     "link": "#"
   },
   {
     "id": "mira",
     "label": "M.I.R.A.",
-    "image": "https://m-i-r-a.vercel.app/proicon.png",
+    "image": "proicon.png",
     "desc": "Multipurpose Intelligence for Research & Automation",
     "link": "https://m-i-r-a.vercel.app/"
   },
