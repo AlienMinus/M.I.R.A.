@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar/Sidebar";
 import Container from "../components/Container/Container";
-import AppsPage from "./AppsPage";
 import SettingsModal from "../components/SettingsModal/SettingsModal";
 
 export default function Home() {
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [view, setView] = useState("chat"); // 'chat' | 'apps'
   const [chatId, setChatId] = useState(() => {
     const saved = localStorage.getItem("mira-current-chat-id");
     return saved ? parseInt(saved, 10) : 0;
@@ -35,12 +35,10 @@ export default function Home() {
     }
     setChatId(maxId + 1);
     setMobileOpen(false);
-    setView("chat");
   };
 
   const handleSelectChat = (id) => {
     setChatId(id);
-    setView("chat");
   };
 
   const handleClearHistory = () => {
@@ -65,16 +63,12 @@ export default function Home() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
-        onShowApps={() => { setView("apps"); setMobileOpen(false); }}
+        onShowApps={() => { navigate("/apps"); setMobileOpen(false); }}
         currentChatId={chatId}
       />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-        {view === "apps" ? (
-          <AppsPage onMenuClick={() => setMobileOpen(true)} onBack={() => setView("chat")} />
-        ) : (
-          <Container key={chatId} chatId={chatId} onMenuClick={() => setMobileOpen(true)} />
-        )}
+        <Container key={chatId} chatId={chatId} onMenuClick={() => setMobileOpen(true)} />
       </div>
 
       <SettingsModal
