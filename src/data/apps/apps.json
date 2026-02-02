@@ -2,7 +2,7 @@
   {
     "id": "vichark",
     "label": "V.I.C.H.A.R.K",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=V",
+    "image": "https://placehold.co/64x64/ffffff/000000?text=V",
     "desc": "Virtual Intelligence for Constitutional Heuristics, Analysis, Research & Knowledge",
     "link": "#"
   },
@@ -16,7 +16,7 @@
   {
     "id": "eli",
     "label": "E.L.I.",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=ELI",
+    "image": "https://placehold.co/64x64/ffffff/000000?text=E",
     "desc": "Enhanced Learning Interface",
     "link": "#"
   },
@@ -30,7 +30,7 @@
   {
     "id": "kyra",
     "label": "K.Y.R.A.",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=KYRA",
+    "image": "https://placehold.co/64x64/ffffff/000000?text=K",
     "desc": "Knowledge-Yielding Responsive Assistant",
     "link": "#"
   },
@@ -51,7 +51,7 @@
   {
     "id": "surya-ai",
     "label": "Surya-AI",
-    "image": "https://placehold.co/64x64/3f3f46/fff?text=S",
+    "image": "https://placehold.co/64x64/ffffff/000000?text=S",
     "desc": "ChatBot by Suryakanta-Devx",
     "link": "#"
   },
