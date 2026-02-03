@@ -37,9 +37,9 @@
   {
     "id": "kyra",
     "label": "K.Y.R.A.",
-    "image": "https://placehold.co/64x64/ffffff/000000?text=K",
+    "image": "https://k-y-r-a.vercel.app/logo.png",
     "desc": "Knowledge-Yielding Responsive Assistant",
-    "link": "#"
+    "link": "https://k-y-r-a.vercel.app"
   },
   {
     "id": "loki",
