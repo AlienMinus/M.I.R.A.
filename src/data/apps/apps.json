@@ -58,9 +58,9 @@
   {
     "id": "surya-ai",
     "label": "Surya-AI",
-    "image": "https://placehold.co/64x64/ffffff/000000?text=S",
+    "image": "https://s-u-r-y-a.vercel.app/favicon.png",
     "desc": "ChatBot by Suryakanta-Devx",
-    "link": "#"
+    "link": "https://s-u-r-y-a.vercel.app/"
   },
   {
     "id": "bitu",
