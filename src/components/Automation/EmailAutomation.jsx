@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FiSend, FiUser, FiType, FiFileText, FiTrash2 } from 'react-icons/fi';
 import { MdAutoAwesome } from "react-icons/md";
-import emailTemplates from '.../data/emails/email.json';
+import emailTemplates from '../../data/emails/email.json';
 import './Automation.css';
 
 export default function EmailAutomation() {
