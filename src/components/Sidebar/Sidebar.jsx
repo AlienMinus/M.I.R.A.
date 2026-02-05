@@ -9,11 +9,12 @@ import {
   FiX,
   FiSettings
 } from "react-icons/fi";
+import { GiAutomaticSas } from "react-icons/gi";
 import SidebarItem from "./SidebarItem";
 import ChatHistory from "./ChatHistory";
 import "./Sidebar.css";
 
-export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, onOpenSettings, onNewChat, onSelectChat, onShowApps, currentChatId }) {
+export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, onOpenSettings, onNewChat, onSelectChat, onShowApps, onShowAutomation, currentChatId }) {
   const [collapsed, setCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebar-collapsed");
     return saved ? JSON.parse(saved) : false;
@@ -136,7 +137,7 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {}, 
           )}
           <SidebarItem icon={<FiImage />} label="Images" collapsed={isCollapsed} />
           <SidebarItem icon={<FiGrid />} label="Apps" collapsed={isCollapsed} onClick={onShowApps} />
-          <SidebarItem icon={<FiFolder />} label="Projects" collapsed={isCollapsed} />
+          <SidebarItem icon={<GiAutomaticSas />} label="Automation" collapsed={isCollapsed} onClick={onShowAutomation} />
         </div>
 
         <div className="sidebar-section">

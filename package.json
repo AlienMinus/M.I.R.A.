@@ -9,9 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:analyze": "cross-env ANALYZE=1 npm run dev",
-  "build:analyze": "cross-env ANALYZE=1 npm run build"
+    "build:analyze": "cross-env ANALYZE=1 npm run build"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",

@@ -64,6 +64,7 @@ export default function Home() {
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
         onShowApps={() => { navigate("/apps"); setMobileOpen(false); }}
+        onShowAutomation={() => { navigate("/automation"); setMobileOpen(false); }}
         currentChatId={chatId}
       />
 

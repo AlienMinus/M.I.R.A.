@@ -1,0 +1,10 @@
+{
+  "generate": {
+    "subject": "Project Collaboration Inquiry",
+    "body": "Hi [Name],\n\nI came across your work on [Platform/Website] and was really impressed by [Specific Project/Achievement].\n\nI'm currently working on [Your Project] and believe there could be some great synergy between our work. I'd love to discuss potential collaboration opportunities.\n\nAre you available for a brief call next week?\n\nBest regards,\n[Your Name]"
+  },
+  "finetune": {
+    "subject": "Re: Project Collaboration Inquiry",
+    "body": "Dear [Name],\n\nI hope you're having a great week.\n\nI wanted to follow up on my previous note regarding a potential collaboration. I truly believe our combined expertise could lead to something impactful.\n\nLet me know if you have some time to chat.\n\nBest,\n[Your Name]"
+  }
+}

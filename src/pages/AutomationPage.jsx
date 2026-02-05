@@ -1,26 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiMenu, FiArrowLeft, FiSearch } from "react-icons/fi";
-import AppItems from "../components/Apps/AppItems";
+import { FiMenu, FiArrowLeft } from "react-icons/fi";
+import Automation from "../components/Automation/Automation";
 import Sidebar from "../components/Sidebar/Sidebar";
 import SettingsModal from "../components/SettingsModal/SettingsModal";
-import appsData from "../data/apps/apps.json";
-import "../components/Apps/Apps.css";
+import "../components/Automation/Automation.css";
 
-export default function AppsPage() {
+export default function AutomationPage() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [chatId, setChatId] = useState(() => {
     const saved = localStorage.getItem("mira-current-chat-id");
     return saved ? parseInt(saved, 10) : 0;
   });
-
-  const filteredApps = appsData.filter(app => 
-    app.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.desc.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const handleNewChat = () => {
     let maxId = 0;
@@ -65,40 +58,43 @@ export default function AppsPage() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
-        onShowApps={() => setMobileOpen(false)}
-        onShowAutomation={() => { navigate("/automation"); setMobileOpen(false); }}
+        onShowApps={() => { navigate("/apps"); setMobileOpen(false); }}
+        onShowAutomation={() => setMobileOpen(false)}
         currentChatId={chatId}
       />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-        <div className="apps-page">
-          <div className="apps-container">
-            <div className="apps-header">
-              <div className="apps-header-left">
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", backgroundColor: "#09090b" }}>
+        <div className="custom-scrollbar" style={{ height: "100%", overflowY: "auto", padding: "20px" }}>
+          <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button 
                   className="apps-mobile-menu-btn" 
                   onClick={() => setMobileOpen(true)}
+                  style={{ display: "none" }} // Hidden by default, shown via CSS media query if needed
                 >
                   <FiMenu />
                 </button>
-                <h1 className="apps-title">Apps</h1>
+                <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: 0 }}>Automation</h1>
               </div>
-              <div className="apps-search-box">
-                <FiSearch className="apps-search-icon" />
-                <input 
-                  type="text" 
-                  placeholder="Search apps..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="apps-search-input"
-                />
-              </div>
-              <button className="apps-back-btn" onClick={() => navigate("/")}>
+              <button 
+                onClick={() => navigate("/")}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px", 
+                  background: "transparent", 
+                  border: "none", 
+                  color: "#a1a1aa", 
+                  cursor: "pointer",
+                  fontSize: "0.9rem"
+                }}
+              >
                 <FiArrowLeft /> Back to Chat
               </button>
             </div>
             
-            <AppItems apps={filteredApps} />
+            <Automation />
           </div>
         </div>
       </div>
