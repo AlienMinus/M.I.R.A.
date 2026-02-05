@@ -30,6 +30,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  top: 50%;
+  transform: translateY(-10%);
 }
 
 .delete-chat-btn {
