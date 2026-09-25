@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIRA | SLM Neural Intelligence Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0d14;
+            --bg-secondary: #121722;
+            --bg-card: rgba(22, 29, 43, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-focus: rgba(99, 102, 241, 0.5);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --success: #10b981;
+            --card-radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #6366f1, #10b981);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            color: #fff;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        .brand-info h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .pipeline-specs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .spec-pill {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .spec-pill span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        }
+
+        .prompt-area {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            background: rgba(10, 13, 20, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            resize: vertical;
+            min-height: 110px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .format-selection-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .format-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .format-tabs {
+            display: flex;
+            background: rgba(10, 13, 20, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .format-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 7px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .format-tab.active {
+            background: var(--accent-primary);
+            color: #fff;
+            box-shadow: 0 2px 8px var(--accent-glow);
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip:hover {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.3);
+            color: var(--text-primary);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+            color: #fff;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 14px var(--accent-glow);
+            transition: transform 0.15s, box-shadow 0.15s;
+            font-family: inherit;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pipeline-progress {
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .step-item {
+            background: rgba(10, 13, 20, 0.4);
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: all 0.3s;
+        }
+
+        .step-item.active {
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .step-item.done {
+            border-color: var(--success);
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .output-card {
+            display: none;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .output-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .telemetry-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .telemetry-badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .telemetry-badge span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .markdown-body {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #e2e8f0;
+        }
+
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            margin-top: 16px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .markdown-body h1 { font-size: 20px; }
+        .markdown-body h2 { font-size: 18px; }
+        .markdown-body h3 { font-size: 16px; }
+
+        .markdown-body p {
+            margin-bottom: 14px;
+        }
+
+        .markdown-body ul, .markdown-body ol {
+            margin-left: 20px;
+            margin-bottom: 14px;
+        }
+
+        .markdown-body li {
+            margin-bottom: 6px;
+        }
+
+        .markdown-body a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+
+        .markdown-body a:hover {
+            text-decoration: underline;
+        }
+
+        .sources-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .sources-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sources-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .source-card {
+            background: rgba(10, 13, 20, 0.5);
+            border: 1px solid var(--border-color);
+            padding: 12px 14px;
+            border-radius: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .source-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .source-card a {
+            font-size: 14px;
+            font-weight: 600;
+            color: #a5b4fc;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .source-card a:hover {
+            text-decoration: underline;
+        }
+
+        .source-snippet {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .error-msg {
+            color: #f87171;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 14px;
+            display: none;
+        }
+
+        @media (max-width: 640px) {
+            .pipeline-progress {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand-title">
+                <div class="brand-logo">M</div>
+                <div class="brand-info">
+                    <h1>MIRA Intelligence Engine</h1>
+                    <p>Modular SLM Backend with Waitress, PyTorch GPT, Bi-LSTM & NLTK</p>
+                </div>
+            </div>
+            <div class="status-badge" id="backendStatusBadge">
+                <div class="status-dot"></div>
+                <span id="statusText">Waitress Active</span>
+            </div>
+        </header>
+
+        <div class="pipeline-specs">
+            <div class="spec-pill">Server: <span>Waitress WSGI</span></div>
+            <div class="spec-pill">PyTorch: <span>GPT-2 SLM (ion.pt)</span></div>
+            <div class="spec-pill">Coherence: <span>Bi-LSTM Formatter</span></div>
+            <div class="spec-pill">NLP: <span>NLTK Tokenizer</span></div>
+            <div class="spec-pill">Web: <span>Bing / DDG Scraper</span></div>
+        </div>
+
+        <div class="card">
+            <div class="format-selection-group">
+                <div class="format-label">Output Formatting Strategy:</div>
+                <div class="format-tabs">
+                    <button class="format-tab active" data-format="auto">Auto Detect (Keywords)</button>
+                    <button class="format-tab" data-format="structured_notes">Structured Notes</button>
+                    <button class="format-tab" data-format="paragraphed">Paragraphed</button>
+                </div>
+            </div>
+
+            <div class="suggestions">
+                <div class="chip" onclick="setPrompt('Give me structured notes on deep learning neural network types')">📝 Notes: Deep Learning Types</div>
+                <div class="chip" onclick="setPrompt('Detailed explanation of quantum computing in paragraphs')">📑 Paragraphs: Quantum Computing</div>
+                <div class="chip" onclick="setPrompt('Key bullet points on attention mechanisms in transformers')">🔑 Bullets: Attention Mechanisms</div>
+            </div>
+
+            <div class="prompt-area">
+                <textarea id="promptInput" placeholder="Ask anything... (Every request automatically performs web search, scrapes top pages, processes with PyTorch GPT + LSTM, and formats with NLTK)"></textarea>
+            </div>
+
+            <button class="submit-btn" id="generateBtn" onclick="generate()">
+                <span id="btnText">Search, Process & Generate</span>
+            </button>
+
+            <div class="pipeline-progress" id="pipelineProgress">
+                <div class="step-item" id="step1">🔍 1. Web Search</div>
+                <div class="step-item" id="step2">🌐 2. Web Scraping</div>
+                <div class="step-item" id="step3">⚡ 3. PyTorch GPT+LSTM</div>
+                <div class="step-item" id="step4">📝 4. NLTK Formatting</div>
+            </div>
+
+            <div class="error-msg" id="errorMessage"></div>
+        </div>
+
+        <div class="card output-card" id="outputCard">
+            <div class="output-header">
+                <div class="output-title">
+                    <span>Response</span>
+                </div>
+                <div class="telemetry-row">
+                    <div class="telemetry-badge">Format: <span id="telemetryFormat">-</span></div>
+                    <div class="telemetry-badge">Time: <span id="telemetryTime">-</span></div>
+                    <div class="telemetry-badge">Scraped: <span id="telemetryScraped">-</span></div>
+                </div>
+            </div>
+
+            <div class="markdown-body" id="markdownContent"></div>
+
+            <div class="sources-section" id="sourcesSection">
+                <div class="sources-title">
+                    <span>🌐 Verified Web Sources & Scraped Sites</span>
+                </div>
+                <div class="sources-grid" id="sourcesGrid"></div>
+            </div>
+
+            <div class="action-bar">
+                <button class="action-btn" id="copyBtn" onclick="copyResponse()">📋 Copy Response</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFormat = 'auto';
+        let latestResponseText = '';
+
+        document.querySelectorAll('.format-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                selectedFormat = tab.dataset.format;
+            });
+        });
+
+        function setPrompt(text) {
+            const textarea = document.getElementById('promptInput');
+            textarea.value = text;
+            textarea.focus();
+        }
+
+        document.getElementById('promptInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generate();
+            }
+        });
+
+        async function checkHealth() {
+            try {
+                const res = await fetch('/health');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('statusText').textContent = 'Waitress (' + data.device.toUpperCase() + ')';
+                }
+            } catch (e) {
+                document.getElementById('statusText').textContent = 'Backend Offline';
+                document.getElementById('backendStatusBadge').style.color = '#f87171';
+            }
+        }
+        checkHealth();
+
+        function setStep(stepNum, status) {
+            const stepEl = document.getElementById('step' + stepNum);
+            if (!stepEl) return;
+            stepEl.className = 'step-item';
+            if (status === 'active') stepEl.classList.add('active');
+            if (status === 'done') stepEl.classList.add('done');
+        }
+
+        async function generate() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            const btn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('btnText');
+            const progress = document.getElementById('pipelineProgress');
+            const outputCard = document.getElementById('outputCard');
+            const errorDiv = document.getElementById('errorMessage');
+
+            if (!prompt) return;
+
+            errorDiv.style.display = 'none';
+            btn.disabled = true;
+            btnText.textContent = 'Processing Pipeline...';
+            progress.style.display = 'grid';
+
+            setStep(1, 'active');
+            setStep(2, '');
+            setStep(3, '');
+            setStep(4, '');
+
+            const stepTimer1 = setTimeout(() => { setStep(1, 'done'); setStep(2, 'active'); }, 1800);
+            const stepTimer2 = setTimeout(() => { setStep(2, 'done'); setStep(3, 'active'); }, 4000);
+            const stepTimer3 = setTimeout(() => { setStep(3, 'done'); setStep(4, 'active'); }, 7000);
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        format: selectedFormat
+                    })
+                });
+
+                clearTimeout(stepTimer1);
+                clearTimeout(stepTimer2);
+                clearTimeout(stepTimer3);
+
+                setStep(1, 'done');
+                setStep(2, 'done');
+                setStep(3, 'done');
+                setStep(4, 'done');
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || ('HTTP error ' + response.status));
+                }
+
+                const data = await response.json();
+
+                latestResponseText = data.generated_text || '';
+                document.getElementById('markdownContent').innerHTML = marked.parse(latestResponseText);
+
+                document.getElementById('telemetryFormat').textContent = data.format_applied || 'default';
+                document.getElementById('telemetryTime').textContent = (data.execution_time_seconds || 0) + 's';
+                document.getElementById('telemetryScraped').textContent = (data.scraped_count || 0) + ' sites';
+
+                const sourcesGrid = document.getElementById('sourcesGrid');
+                sourcesGrid.innerHTML = '';
+                if (data.sources && data.sources.length > 0) {
+                    document.getElementById('sourcesSection').style.display = 'block';
+                    data.sources.forEach(src => {
+                        const card = document.createElement('div');
+                        card.className = 'source-card';
+                        card.innerHTML = 
+                            '<a href="' + src.link + '" target="_blank" rel="noopener noreferrer">' + (src.title || src.link) + '</a>' +
+                            '<div class="source-snippet">' + (src.snippet || '') + '</div>';
+                        sourcesGrid.appendChild(card);
+                    });
+                } else {
+                    document.getElementById('sourcesSection').style.display = 'none';
+                }
+
+                outputCard.style.display = 'block';
+                outputCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            } catch (err) {
+                console.error(err);
+                errorDiv.textContent = 'Error: ' + err.message + '. Ensure backend is running.';
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Search, Process & Generate';
+                setTimeout(() => { progress.style.display = 'none'; }, 3000);
+            }
+        }
+
+        function copyResponse() {
+            if (!latestResponseText) return;
+            navigator.clipboard.writeText(latestResponseText);
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.textContent = '✅ Copied!';
+            setTimeout(() => { copyBtn.textContent = '📋 Copy Response'; }, 2000);
+        }
+    </script>
+</body>
+</html>

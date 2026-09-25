@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env
+backend\services\__pycache__
+backend\__pycache__
+backend\models\__pycache__
