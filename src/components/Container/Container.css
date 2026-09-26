@@ -78,9 +78,10 @@
 
 .messages-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 20px;
-  padding-bottom: 120px; /* Space for input */
+  padding-bottom: 140px; /* Space for pinned input */
   display: flex;
   flex-direction: column;
   gap: 24px;

@@ -14,15 +14,12 @@ import {
   FiSlack,
   FiHardDrive,
   FiBook,
-  FiCheck,
-  FiLoader
+  FiCheck
 } from "react-icons/fi";
-import { HiGlobeAlt } from "react-icons/hi2";
 import { BsThreeDots } from "react-icons/bs";
 import "./ChatInput.css";
 import Attachment from "./Attachment";
 import AttachmentPreview from "./AttachmentPreview";
-import { searchWeb } from "../../utils/googleSearch";
 
 export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const [open, setOpen] = useState(false);
@@ -41,16 +38,6 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
   const streamRef = useRef(null);
   const animationFrameRef = useRef(null);
   const [showConnectApps, setShowConnectApps] = useState(false);
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const prevLoading = useRef(isLoading);
-
-  useEffect(() => {
-    if (prevLoading.current && !isLoading) {
-      setIsSearching(false);
-    }
-    prevLoading.current = isLoading;
-  }, [isLoading]);
 
   // Close on outside click
   useEffect(() => {
@@ -305,23 +292,13 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
 
     const currentInput = input;
     const currentFiles = files;
-    const isWebSearch = webSearchEnabled;
 
     setInput("");
     setFiles([]);
-    setWebSearchEnabled(false);
-
-    let searchResults = null;
-
-    if (isWebSearch) {
-      setIsSearching(true);
-      searchResults = await searchWeb(currentInput);
-      setIsSearching(false);
-    }
 
     // Send message to parent
     if (onSendMessage) {
-      onSendMessage(currentInput, currentFiles.map(f => f.file), isWebSearch, searchResults);
+      onSendMessage(currentInput, currentFiles.map(f => f.file));
     }
   };
 
@@ -394,29 +371,12 @@ export default function ChatInput({ onSendMessage, isLoading, onStop }) {
           <DropdownItem icon={<FiImage />} text="Create image" />
           <DropdownItem icon={<FiSearch />} text="Deep research" />
           <DropdownItem icon={<FiCpu />} text="Thinking" />
-          <DropdownItem icon={<HiGlobeAlt />} text={webSearchEnabled ? "Disable Web Search" : "Enable Web Search"} onClick={() => { setWebSearchEnabled(!webSearchEnabled); setOpen(false); }}/>
           <DropdownItem icon={<FiLayers />} text="Connect Apps" onClick={() => { setShowConnectApps(true); setOpen(false); }} />
         </div>
       )}
 
       <form className="chat-input" onSubmit={handleSubmit}>
         <AttachmentPreview files={files} onRemove={removeFile} />
-
-        {(webSearchEnabled || isSearching) && (
-          <div className="search-active-indicator">
-            {isSearching ? (
-              <FiLoader className="search-spinner" />
-            ) : (
-              <HiGlobeAlt />
-            )}
-            <span>{isSearching ? "Searching web..." : "Web Search Enabled"}</span>
-            {!isSearching && (
-              <button type="button" onClick={() => setWebSearchEnabled(false)} aria-label="Disable web search">
-                <FiX />
-              </button>
-            )}
-          </div>
-        )}
 
         <button
           type="button"

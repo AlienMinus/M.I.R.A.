@@ -22,6 +22,7 @@ def serve_index():
     return send_from_directory(current_dir, 'index.html')
 
 @app.route('/health', methods=['GET'])
+@app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
         'status': 'healthy',
@@ -37,6 +38,7 @@ def health_check():
     })
 
 @app.route('/generate', methods=['POST'])
+@app.route('/api/generate', methods=['POST'])
 def generate_endpoint():
     data = request.get_json(silent=True) or {}
     prompt = data.get('prompt', '').strip()
@@ -58,6 +60,7 @@ def generate_endpoint():
         }), 500
 
 @app.route('/search', methods=['POST'])
+@app.route('/api/search', methods=['POST'])
 def search_endpoint():
     data = request.get_json(silent=True) or {}
     query = data.get('query', '').strip()

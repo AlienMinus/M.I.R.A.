@@ -9,6 +9,8 @@ from models.lstm import LSTMTextFormatter
 from .search_service import SearchService
 from .scraper_service import ScraperService
 from .nlp_service import NLPService
+from .image_service import ImageService
+from .rag_service import RAGService
 
 class PipelineService:
     def __init__(self, device: str = None):
@@ -25,6 +27,8 @@ class PipelineService:
         )
 
         self.nlp_service = NLPService()
+        self.image_service = ImageService()
+        self.rag_service = RAGService()
 
         self.gpt_model, self.tokenizer = load_gpt_model(
             model_path=config.MODEL_PATH,
@@ -52,6 +56,25 @@ class PipelineService:
 
         execution_log = []
 
+        # 0. CHECK DIRECT RAG MATCH (Persona, greetings, ecosystem apps)
+        direct_match = self.rag_service.find_direct_response(prompt)
+        if direct_match:
+            elapsed = round(time.time() - start_time, 2)
+            execution_log.append(f"Matched in local knowledge base ({direct_match.get('source')}).")
+            return {
+                "success": True,
+                "prompt": prompt,
+                "format_applied": "direct",
+                "generated_text": direct_match["text"],
+                "summary": "",
+                "images": [],
+                "sources": [{"title": direct_match["source"], "url": "#", "snippet": direct_match["text"]}],
+                "scraped_count": 0,
+                "execution_time_seconds": elapsed,
+                "pipeline_log": execution_log,
+                "is_rag": True
+            }
+
         # 1. WEB SEARCH
         execution_log.append("Executing web search...")
         search_results = self.search_service.search(
@@ -73,7 +96,17 @@ class PipelineService:
                 scraped_paragraphs.extend(src.get("paragraphs", []))
             execution_log.append(f"Scraped {len(scraped_paragraphs)} paragraphs from {len(scraped_sources)} websites.")
 
-        # 3. PYTORCH GPT MODEL GENERATION
+        # 3. SCRAPE TOPIC IMAGES (Bing + Wikimedia + Scraped Page Images, min 5)
+        execution_log.append("Extracting high-resolution topic imagery...")
+        topic_images = self.image_service.get_topic_images(
+            query=prompt,
+            scraped_html_list=scraped_sources,
+            min_images=5,
+            target_count=8
+        )
+        execution_log.append(f"Retrieved {len(topic_images)} verified images.")
+
+        # 4. PYTORCH GPT MODEL GENERATION
         execution_log.append("Generating response with PyTorch GPT model...")
         gpt_generated_text = ""
         try:
@@ -97,7 +130,7 @@ class PipelineService:
             print(f"[PipelineService] GPT generation fallback: {e}")
             gpt_generated_text = ""
 
-        # 4. COLLECT CANDIDATES & PYTORCH LSTM RANKING
+        # 5. COLLECT CANDIDATES & PYTORCH LSTM RANKING
         execution_log.append("Cleaning, sanitizing, and ranking sequences using PyTorch Bi-LSTM...")
         raw_candidates = []
 
@@ -116,8 +149,8 @@ class PipelineService:
 
         if not raw_candidates:
             raw_candidates = [
-                f"Information regarding {prompt} was gathered and analyzed.",
-                "The system processed the context to extract actionable information."
+                f"Information regarding {prompt} was gathered and analyzed from online sources.",
+                "The neural engine processed the search context to extract verified findings."
             ]
 
         # Use LSTM to rank, filter, and score coherence against user query
@@ -130,8 +163,10 @@ class PipelineService:
         )
         execution_log.append(f"Selected {len(ranked_sentences)} non-redundant, coherent sentences via LSTM.")
 
-        # 5. NLTK FORMATTING
-        execution_log.append("Applying NLTK structure and grammar formatting...")
+        # 6. EXECUTIVE SUMMARY & NLTK FORMATTING
+        execution_log.append("Generating executive summary and applying NLTK structure...")
+        summary = self.nlp_service.extract_summary(prompt, ranked_sentences)
+
         formatted_text, format_type = self.nlp_service.format_response(
             query=prompt,
             sentences=ranked_sentences,
@@ -147,6 +182,8 @@ class PipelineService:
             "prompt": prompt,
             "format_applied": format_type,
             "generated_text": formatted_text,
+            "summary": summary,
+            "images": topic_images,
             "sources": search_results,
             "scraped_count": len(scraped_sources),
             "execution_time_seconds": elapsed,

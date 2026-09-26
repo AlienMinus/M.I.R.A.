@@ -331,6 +331,17 @@ class NLPService:
 
         return "\n\n".join(lines).strip()
 
+    def extract_summary(self, query: str, sentences: List[str], max_length: int = 250) -> str:
+        """Extracts a high-impact, concise executive summary from ranked sentences."""
+        if not sentences:
+            return f"Information regarding {query} was analyzed and synthesized."
+        ordered = self.order_by_relevance(query, sentences)
+        summary_sentences = ordered[:2]
+        summary = " ".join(summary_sentences).strip()
+        if len(summary) > max_length:
+            summary = summary[:max_length].rstrip(" ,;.") + "..."
+        return summary
+
     def format_response(
         self,
         query: str,

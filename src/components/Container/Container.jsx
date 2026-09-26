@@ -39,7 +39,9 @@ export default function Container({ chatId = 0, onMenuClick }) {
         size: f.size,
         type: f.type
       })) : [],
-      searchResults: msg.searchResults || null
+      images: msg.images || [],
+      summary: msg.summary || "",
+      sources: msg.sources || []
     }));
     localStorage.setItem(`mira-chat-${chatId}`, JSON.stringify(messagesToSave));
 
@@ -67,67 +69,84 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }
   }, [messages, chatId]);
 
-  const generateResponse = (userMessage = "", hasFiles = false, isWebSearch = false, searchResults = null) => {
+  const generateResponse = async (userMessage = "", hasFiles = false) => {
     setIsLoading(true);
     setLastCopied(false);
 
-    setMessages((prev) => [...prev, { role: "ai", text: "" }]);
+    // Initial placeholder AI message
+    setMessages((prev) => [...prev, { role: "ai", text: "", images: [], summary: "", sources: [] }]);
 
-    const input = userMessage.toLowerCase().trim();
+    let responseData = null;
 
-    // Prioritize longer matches (e.g., "git commit" over "git")
-    const sortedKeys = Object.keys(responsesData)
-      .filter((key) => key !== "__fallback__")
-      .sort((a, b) => b.length - a.length);
+    try {
+      // 1. PRIMARY: Query neural research backend pipeline
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: userMessage, format: "auto" })
+      }).catch(() => fetch("http://localhost:5000/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: userMessage, format: "auto" })
+      }));
 
-    let responseText = null;
-    let matchedKey = null;
-
-    if (isWebSearch) {
-      if (searchResults && searchResults.length > 0) {
-        responseText = `I searched the web for "${userMessage}" and found ${searchResults.length} results.\n\n`;
-        responseText += searchResults.map(r => `**${r.title}**\n${r.snippet}`).join("\n\n");
-        responseText += "\n\nIs there anything specific you would like to know from these results?";
-      } else {
-        responseText = `I searched the web for "${userMessage}" but found no results. Try rephrasing your query.`;
-      }
-    } else {
-      for (const key of sortedKeys) {
-        if (input.includes(key.toLowerCase())) {
-          responseText = responsesData[key];
-          matchedKey = key;
-          break;
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data && data.success) {
+          responseData = {
+            text: data.generated_text || "",
+            images: data.images || [],
+            summary: data.summary || "",
+            sources: data.sources || []
+          };
         }
       }
+    } catch (err) {
+      console.warn("[Container] Backend /generate unreachable, using local fallback:", err);
     }
 
-    // If a generic key is matched (e.g., "joke"), check if there are numbered variations (e.g., "joke 1")
-    // and pick one randomly to provide variety.
-    if (matchedKey) {
-      const variations = Object.keys(responsesData).filter((k) => {
-        const lowerK = k.toLowerCase();
-        const lowerMatched = matchedKey.toLowerCase();
-        return (
-          lowerK.startsWith(lowerMatched + " ") &&
-          !isNaN(parseInt(lowerK.slice(lowerMatched.length + 1).trim()))
-        );
-      });
+    // 2. FALLBACK: Clean local responsesData with STRICT matching (no false substring matches)
+    if (!responseData) {
+      const input = userMessage.toLowerCase().trim();
+      let responseText = null;
 
-      if (variations.length > 0) {
-        const randomKey =
-          variations[Math.floor(Math.random() * variations.length)];
-        responseText = responsesData[randomKey];
+      // Exact match
+      if (responsesData[input]) {
+        responseText = responsesData[input];
+      } else {
+        // Multi-word phrase matching with word boundaries (\b)
+        const sortedKeys = Object.keys(responsesData)
+          .filter((k) => k !== "__fallback__" && k.split(" ").length >= 2)
+          .sort((a, b) => b.length - a.length);
+
+        for (const key of sortedKeys) {
+          const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(`\\b${escaped}\\b`, "i");
+          if (regex.test(input)) {
+            responseText = responsesData[key];
+            break;
+          }
+        }
       }
+
+      if (!responseText) {
+        responseText = responsesData.__fallback__ || "I am currently unable to reach the neural research engine. Please ensure the Python backend is running.";
+      }
+
+      responseData = {
+        text: String(responseText),
+        images: [],
+        summary: "",
+        sources: []
+      };
     }
 
-    if (!responseText) {
-      responseText = responsesData.__fallback__ || "";
-    }
-    responseText = String(responseText);
+    const fullText = responseData.text;
+    const finalImages = responseData.images;
+    const finalSummary = responseData.summary;
+    const finalSources = responseData.sources;
 
     let i = 0;
-
-    // Clear any existing timers
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
@@ -138,45 +157,46 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }
 
     typingTimeoutRef.current = setTimeout(() => {
+      const step = fullText.length > 500 ? 5 : 2;
       typingIntervalRef.current = setInterval(() => {
         setMessages((prev) => {
           const updated = [...prev];
           if (updated.length === 0) {
-            // Ensure an AI message exists to update
-            updated.push({ role: "ai", text: "" });
+            updated.push({ role: "ai", text: "", images: finalImages, summary: finalSummary, sources: finalSources });
           }
           const last = { ...updated[updated.length - 1] };
-          last.text = String(responseText).slice(0, i + 1);
+          last.images = finalImages;
+          last.summary = finalSummary;
+          last.sources = finalSources;
+          last.text = fullText.slice(0, i + step);
           updated[updated.length - 1] = last;
           return updated;
         });
 
-        i++;
+        i += step;
 
-        if (i >= String(responseText).length) {
+        if (i >= fullText.length) {
           clearInterval(typingIntervalRef.current);
           typingIntervalRef.current = null;
           setIsLoading(false);
         }
       }, 15);
-    }, hasFiles ? 2000 : 400);
+    }, hasFiles ? 1500 : 300);
   };
 
-  const handleSendMessage = (text, files = [], isWebSearch = false, searchResults = null) => {
-    setMessages((prev) => [...prev, { role: "user", text, files, searchResults }]);
-    generateResponse(text, files.length > 0, isWebSearch, searchResults);
+  const handleSendMessage = (text, files = []) => {
+    setMessages((prev) => [...prev, { role: "user", text, files }]);
+    generateResponse(text, files.length > 0);
   };
 
   const handleRegenerate = () => {
     if (isLoading) return;
     if (messages.length < 2) return;
-    // Find the most recent user message
     const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
     const userText = lastUserMessage ? lastUserMessage.text : "";
     const hasFiles = lastUserMessage?.files?.length > 0;
-    const isWebSearch = !!lastUserMessage?.searchResults;
-    const searchResults = lastUserMessage?.searchResults || null;
-    // Remove last AI message if it's present
+
+    // Remove last AI message
     setMessages((prev) => {
       const last = prev[prev.length - 1];
       if (last && last.role === "ai") {
@@ -184,8 +204,9 @@ export default function Container({ chatId = 0, onMenuClick }) {
       }
       return prev;
     });
-    if (userText || hasFiles || isWebSearch) {
-      generateResponse(userText, hasFiles, isWebSearch, searchResults);
+
+    if (userText || hasFiles) {
+      generateResponse(userText, hasFiles);
     }
   }; 
 
@@ -346,6 +367,9 @@ export default function Container({ chatId = 0, onMenuClick }) {
                   <AIResponse 
                     text={msg.text} 
                     attachments={messages[idx - 1]?.role === "user" ? messages[idx - 1].files : []}
+                    images={msg.images || []}
+                    summary={msg.summary || ""}
+                    sources={msg.sources || []}
                   />
                 </Suspense>
               )}

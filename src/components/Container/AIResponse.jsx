@@ -90,7 +90,9 @@ function CopyMessageButton({ text }) {
   );
 }
 
-export default function AIResponse({ text, attachments }) {
+export default function AIResponse({ text, attachments, images = [], summary = "", sources = [] }) {
+  const [activeImage, setActiveImage] = useState(null);
+
   if (!text) {
     if (attachments && attachments.length > 0) {
       return (
@@ -119,9 +121,86 @@ export default function AIResponse({ text, attachments }) {
   return (
     <div className="ai-response-container">
       <div className="ai-message-bubble" role="status" aria-live="polite">
+        {/* 1. Topic Visuals Strip (on top of response text) */}
+        {images && images.length > 0 && (
+          <div className="topic-visuals-container">
+            <div className="topic-visuals-header">
+              <span>🖼️ Verified Topic Visuals</span>
+              <span className="topic-visuals-badge">{images.length} photos</span>
+            </div>
+            <div className="topic-visuals-strip">
+              {images.map((img, idx) => (
+                <div
+                  key={idx}
+                  className="topic-visual-item"
+                  onClick={() => setActiveImage(img)}
+                  title={img.title || "Topic Image"}
+                >
+                  <img
+                    src={img.url}
+                    alt={img.title || "Visual reference"}
+                    className="topic-visual-img"
+                    onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+                  />
+                  <div className="topic-visual-caption">
+                    {img.title || img.source || "Image"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2. Executive Summary Highlight Card */}
+        {summary && summary.trim() && (
+          <div className="summary-highlight-card">
+            <div className="summary-header">
+              <span>⚡ Executive Summary</span>
+            </div>
+            <div className="summary-body">{summary}</div>
+          </div>
+        )}
+
+        {/* 3. Markdown AI Response */}
         <ReactMarkdown components={{ code: CodeBlock }}>{text}</ReactMarkdown>
+
+        {/* 4. Verified Sources Section */}
+        {sources && sources.length > 0 && (
+          <div className="verified-sources-container">
+            <div className="verified-sources-header">
+              <span>🌐 Verified Sources & References</span>
+            </div>
+            <div className="verified-sources-chips">
+              {sources.map((src, idx) => (
+                <a
+                  key={idx}
+                  href={src.link || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="source-chip"
+                  title={src.snippet || src.title}
+                >
+                  <span>{src.title || `Source ${idx + 1}`}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
       <CopyMessageButton text={text} />
+
+      {/* Lightbox Modal */}
+      {activeImage && (
+        <div className="image-lightbox-overlay" onClick={() => setActiveImage(null)}>
+          <div className="image-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img src={activeImage.url} alt={activeImage.title || "Enlarged Image"} />
+            {activeImage.title && (
+              <div className="image-lightbox-caption">{activeImage.title}</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
