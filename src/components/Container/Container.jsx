@@ -78,31 +78,49 @@ export default function Container({ chatId = 0, onMenuClick }) {
 
     let responseData = null;
 
-    try {
-      // 1. PRIMARY: Query neural research backend pipeline
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: userMessage, format: "auto" })
-      }).catch(() => fetch("http://localhost:5000/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: userMessage, format: "auto" })
-      }));
+    // 1. PRIMARY: Query neural research backend pipeline
+    const candidateEndpoints = [
+      "http://localhost:5000/generate",
+      "http://127.0.0.1:5000/generate",
+      "/api/generate"
+    ];
 
-      if (res && res.ok) {
-        const data = await res.json();
-        if (data && data.success) {
-          responseData = {
-            text: data.generated_text || "",
-            images: data.images || [],
-            summary: data.summary || "",
-            sources: data.sources || []
-          };
+    for (const endpoint of candidateEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: userMessage, format: "auto" }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data && data.success) {
+            responseData = {
+              text: data.generated_text || "",
+              images: data.images || [],
+              summary: data.summary || "",
+              sources: data.sources || []
+            };
+            break;
+          } else if (data && !data.success && data.generated_text) {
+            responseData = {
+              text: data.generated_text,
+              images: [],
+              summary: "",
+              sources: []
+            };
+            break;
+          }
         }
+      } catch (err) {
+        console.warn(`[Container] Failed connecting to backend endpoint ${endpoint}:`, err.message || err);
       }
-    } catch (err) {
-      console.warn("[Container] Backend /generate unreachable, using local fallback:", err);
     }
 
     // 2. FALLBACK: Clean local responsesData with STRICT matching (no false substring matches)
