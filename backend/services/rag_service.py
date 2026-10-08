@@ -115,10 +115,19 @@ class RAGService:
                     "category": "ecosystem"
                 }
 
-        # 2. Exact Match in Knowledge Base
-        if norm_query in self.knowledge_base:
+        # 2. Greeting / Common short utterance normalization (e.g. hii -> hi, heyy -> hey)
+        check_query = norm_query
+        if re.fullmatch(r'h+i+', norm_query):
+            check_query = "hi"
+        elif re.fullmatch(r'h+e+y+', norm_query):
+            check_query = "hey"
+        elif re.fullmatch(r'h+e+l+o+', norm_query):
+            check_query = "hello"
+
+        # Exact Match in Knowledge Base
+        if check_query in self.knowledge_base:
             return {
-                "text": self.knowledge_base[norm_query],
+                "text": self.knowledge_base[check_query],
                 "source": "MIRA Local Knowledge",
                 "category": "persona"
             }
