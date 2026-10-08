@@ -159,3 +159,330 @@
 @keyframes shimmer {
   to { background-position: 200% center; }
 }
+
+/* ========================================================
+   Microchip Neural Pipeline Loader Animation
+   ======================================================== */
+.microchip-bubble {
+  padding: 8px 0;
+}
+
+.microchip-loader-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(18, 18, 22, 0.85);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.microchip-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.microchip-icon-pulse {
+  animation: microchip-spin-glow 3s infinite ease-in-out;
+}
+
+.microchip-ping-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1px solid #6366f1;
+  opacity: 0.75;
+  animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.microchip-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.microchip-engine-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #6366f1;
+}
+
+.microchip-phase-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e4e4e7;
+  white-space: nowrap;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.microchip-activity-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+}
+
+.microchip-activity-dots span {
+  width: 4px;
+  height: 4px;
+  background: #818cf8;
+  border-radius: 50%;
+  animation: pulse 1.2s infinite ease-in-out both;
+}
+
+.microchip-activity-dots span:nth-child(1) { animation-delay: -0.3s; }
+.microchip-activity-dots span:nth-child(2) { animation-delay: -0.15s; }
+
+@keyframes microchip-spin-glow {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px #6366f1); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 6px #818cf8); }
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* ========================================================
+   Topic Visuals Horizontal Scroll Strip (Above Text)
+   ======================================================== */
+.topic-visuals-container {
+  margin-bottom: 1.25rem;
+  width: 100%;
+  max-width: 100%;
+  background: rgba(24, 24, 27, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  backdrop-filter: blur(10px);
+}
+
+.topic-visuals-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.topic-visuals-badge {
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.topic-visuals-strip {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.topic-visuals-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.topic-visuals-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.topic-visuals-strip::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.topic-visuals-strip::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.topic-visual-item {
+  flex: 0 0 160px;
+  width: 160px;
+  height: 110px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.topic-visual-item:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.topic-visual-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.topic-visual-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%);
+  padding: 12px 6px 4px 6px;
+  font-size: 10px;
+  color: #f4f4f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+/* ========================================================
+   Executive Summary Card
+   ======================================================== */
+.summary-highlight-card {
+  margin-bottom: 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-left: 4px solid #6366f1;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.summary-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #818cf8;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-body {
+  font-size: 13.5px;
+  color: #e4e4e7;
+  line-height: 1.55;
+}
+
+/* ========================================================
+   Verified Sources Chips
+   ======================================================== */
+.verified-sources-container {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.verified-sources-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #71717a;
+  margin-bottom: 8px;
+}
+
+.verified-sources-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #a1a1aa;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  max-width: 240px;
+}
+
+.source-chip span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.source-chip:hover {
+  background: #27272a;
+  color: #60a5fa;
+  border-color: #3b82f6;
+  text-decoration: none;
+}
+
+/* ========================================================
+   Lightbox Modal for Visuals
+   ======================================================== */
+.image-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  cursor: zoom-out;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.image-lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 85vh;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-lightbox-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 10px;
+  object-fit: contain;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.image-lightbox-caption {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #d4d4d8;
+  text-align: center;
+  max-width: 600px;
+}
