@@ -20,6 +20,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from config import SERVER_CONFIG, DEVICE, HF_TOKEN
 from services.pipeline_service import PipelineService
+from services.resume_ai_service import ResumeAIService
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
@@ -31,7 +32,8 @@ else:
     print('[Backend] Notice: No HF_TOKEN detected in .env')
 
 pipeline = PipelineService(device=DEVICE)
-print('[Backend] Pipeline ready to serve requests.')
+resume_ai_service = ResumeAIService(hf_token=HF_TOKEN, pipeline_service=pipeline)
+print('[Backend] Pipeline & Resume AI Engine ready to serve requests.')
 
 @app.route('/')
 def serve_index():
@@ -104,6 +106,22 @@ def search_endpoint():
             'scraped': scraped
         }), 200
     except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+@app.route('/polish-summary', methods=['POST'])
+@app.route('/api/polish-summary', methods=['POST'])
+@app.route('/api/resume/polish-summary', methods=['POST'])
+def polish_summary_endpoint():
+    data = request.get_json(silent=True) or {}
+    profile = data.get('profile') or data
+    if not profile or not isinstance(profile, dict):
+        return jsonify({'error': 'No profile data provided', 'success': False}), 400
+
+    try:
+        result = resume_ai_service.polish_summary(profile)
+        return jsonify(result), 200
+    except Exception as e:
+        print(f'[Backend Error] /polish-summary failed: {e}')
         return jsonify({'error': str(e), 'success': False}), 500
 
 if __name__ == '__main__':
