@@ -101,10 +101,9 @@ class RAGService:
                 label = app.get("label", app_key.title())
                 desc = app.get("desc", "")
                 link = app.get("link", "#")
-                icon = app.get("icon", "🚀")
                 
                 resp = (
-                    f"### {icon} {label}\n\n"
+                    f"### {label}\n\n"
                     f"{desc}\n\n"
                     f"- **Status**: {app.get('status', 'Active').title()}\n"
                     f"- **Access**: [{label} Workspace]({link})"

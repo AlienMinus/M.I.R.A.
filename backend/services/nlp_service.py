@@ -259,12 +259,12 @@ class NLPService:
         details = ordered[6:10] if len(ordered) > 6 else []
 
         lines = [
-            f"# 📝 {title}",
+            f"# {title}",
             "",
-            "### 📌 Overview",
+            "### Overview",
             overview,
             "",
-            "### 🔑 Key Takeaways & Findings"
+            "### Key Takeaways & Findings"
         ]
 
         for b in bullets:
@@ -272,20 +272,8 @@ class NLPService:
 
         if details:
             lines.append("")
-            lines.append("### 📋 In-Depth Breakdown")
+            lines.append("### In-Depth Breakdown")
             lines.append(" ".join(details))
-
-        if sources:
-            lines.append("")
-            lines.append("### 🌐 Sources & References")
-            for idx, src in enumerate(sources[:4], 1):
-                title_clean = src.get("title", f"Source {idx}")
-                link = src.get("link", "#")
-                snippet = src.get("snippet", "").strip()
-                if snippet:
-                    lines.append(f"{idx}. [{title_clean}]({link}) — *{snippet[:110]}...*")
-                else:
-                    lines.append(f"{idx}. [{title_clean}]({link})")
 
         return "\n".join(lines)
 
@@ -317,17 +305,6 @@ class NLPService:
         for p in body_paragraphs:
             if p.strip():
                 lines.append(p.strip())
-
-        if sources:
-            lines.append("### 🌐 Web Sources")
-            for idx, src in enumerate(sources[:4], 1):
-                title_clean = src.get("title", f"Source {idx}")
-                link = src.get("link", "#")
-                snippet = src.get("snippet", "").strip()
-                if snippet:
-                    lines.append(f"{idx}. [{title_clean}]({link}) — *{snippet[:110]}...*")
-                else:
-                    lines.append(f"{idx}. [{title_clean}]({link})")
 
         return "\n\n".join(lines).strip()
 

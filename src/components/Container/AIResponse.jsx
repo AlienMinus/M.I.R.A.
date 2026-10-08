@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { FiCopy, FiCheck, FiCpu } from "react-icons/fi";
+import { FiCopy, FiCheck, FiCpu, FiImage, FiZap, FiGlobe } from "react-icons/fi";
 import "./AIResponse.css";
 
 function CodeBlock({ node, inline, className, children, ...props }) {
@@ -110,20 +110,9 @@ function MicrochipLoader() {
 
   return (
     <div className="ai-response-container">
-      <div className="ai-message-bubble microchip-bubble" role="status" aria-live="polite">
-        <div className="microchip-loader-box">
-          <div className="microchip-icon-wrapper">
-            <FiCpu className="microchip-icon-pulse" size={18} />
-            <span className="microchip-ping-ring"></span>
-          </div>
-          <div className="microchip-status-text">
-            <span className="microchip-engine-tag">MIRA NEURAL ENGINE</span>
-            <span className="microchip-phase-label">{phases[phaseIdx]}</span>
-          </div>
-          <div className="microchip-activity-dots">
-            <span></span><span></span><span></span>
-          </div>
-        </div>
+      <div className="microchip-loader-box" role="status" aria-live="polite">
+        <FiCpu className="microchip-icon-simple" size={17} />
+        <span className="microchip-single-label">{phases[phaseIdx]}</span>
       </div>
     </div>
   );
