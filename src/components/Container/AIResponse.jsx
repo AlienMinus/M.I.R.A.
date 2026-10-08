@@ -1,39 +1,50 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { FiCopy, FiCheck, FiCpu, FiImage, FiZap, FiGlobe } from "react-icons/fi";
+import Editor from "@monaco-editor/react";
+import { FiCopy, FiCheck, FiCpu, FiImage, FiZap, FiGlobe, FiEye, FiCode, FiCheckCircle } from "react-icons/fi";
 import "./AIResponse.css";
+
+const MONACO_LANG_MAP = {
+  js: "javascript",
+  javascript: "javascript",
+  ts: "typescript",
+  typescript: "typescript",
+  py: "python",
+  python: "python",
+  html: "html",
+  htm: "html",
+  css: "css",
+  json: "json",
+  c: "c",
+  cpp: "cpp",
+  "c++": "cpp",
+  java: "java",
+  go: "go",
+  golang: "go",
+  rs: "rust",
+  rust: "rust",
+  sql: "sql",
+  sh: "shell",
+  bash: "shell",
+  shell: "shell"
+};
 
 function CodeBlock({ node, inline, className, children, ...props }) {
   const match = /language-(\w+)/.exec(className || "");
+  const rawLang = match ? match[1].toLowerCase() : "plaintext";
+  const monacoLang = MONACO_LANG_MAP[rawLang] || rawLang;
   const [copied, setCopied] = useState(false);
-  const [Highlighter, setHighlighter] = useState(null);
-  const [style, setStyle] = useState(null);
+  const [viewMode, setViewMode] = useState("code"); // "code" | "preview"
 
-  useEffect(() => {
-    let mounted = true;
-    if (match && !Highlighter) {
-      // Dynamically import the syntax highlighter and style to reduce bundle size
-      (async () => {
-        try {
-          const [{ Prism }, styleModule] = await Promise.all([
-            import("react-syntax-highlighter/dist/esm/prism"),
-            import("react-syntax-highlighter/dist/esm/styles/prism/vsc-dark-plus")
-          ]);
-          if (!mounted) return;
-          setHighlighter(() => Prism);
-          setStyle(styleModule.vscDarkPlus || styleModule.default || styleModule);
-        } catch (e) {
-          // import failed — we'll show a simple <pre> fallback
-        }
-      })();
-    }
-    return () => {
-      mounted = false;
-    };
-  }, [match, Highlighter]);
+  const codeContent = String(children).replace(/\n$/, "");
+  const isHtml = monacoLang === "html" || codeContent.includes("<!DOCTYPE") || (codeContent.includes("<html") && codeContent.includes("</html>"));
+
+  // Calculate dynamic editor height based on line count
+  const lineCount = codeContent.split("\n").length;
+  const editorHeight = Math.min(Math.max(lineCount * 21 + 24, 110), 480);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(String(children).replace(/\n$/, ""));
+    navigator.clipboard.writeText(codeContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -42,26 +53,73 @@ function CodeBlock({ node, inline, className, children, ...props }) {
     return (
       <div className="code-block-wrapper">
         <div className="code-block-header">
-          <span className="code-lang">{match[1]}</span>
+          <div className="code-header-left">
+            <span className="code-lang">{rawLang}</span>
+            {/* PREVIEW BUTTON FOR HTML ONLY */}
+            {isHtml && (
+              <div className="code-tabs">
+                <button
+                  type="button"
+                  className={`code-tab-btn ${viewMode === "code" ? "active" : ""}`}
+                  onClick={() => setViewMode("code")}
+                >
+                  <FiCode size={13} /> Code
+                </button>
+                <button
+                  type="button"
+                  className={`code-tab-btn ${viewMode === "preview" ? "active" : ""}`}
+                  onClick={() => setViewMode("preview")}
+                >
+                  <FiEye size={13} /> Preview
+                </button>
+              </div>
+            )}
+          </div>
+
           <button onClick={handleCopy} className="copy-btn" aria-label="Copy code">
             {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
             {copied ? "Copied!" : "Copy code"}
           </button>
         </div>
-        {Highlighter ? (
-          <Highlighter
-            style={style}
-            language={match[1]}
-            PreTag="div"
-            customStyle={{ margin: 0, borderRadius: "0 0 8px 8px" }}
-            {...props}
-          >
-            {String(children).replace(/\n$/, "")}
-          </Highlighter>
+
+        {isHtml && viewMode === "preview" ? (
+          <div className="code-preview-container">
+            <iframe
+              title="HTML Sandbox Preview"
+              srcDoc={codeContent}
+              className="code-preview-frame"
+              sandbox="allow-scripts"
+            />
+          </div>
         ) : (
-          <pre className={`code-fallback language-${match[1]}`}>
-            {String(children).replace(/\n$/, "")}
-          </pre>
+          <div className="monaco-editor-shell">
+            <Editor
+              height={`${editorHeight}px`}
+              language={monacoLang}
+              theme="vs-dark"
+              value={codeContent}
+              loading={<pre className="code-fallback">{codeContent}</pre>}
+              options={{
+                readOnly: true,
+                domReadOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 13,
+                fontFamily: "Consolas, 'Courier New', monospace",
+                lineNumbers: "on",
+                renderLineHighlight: "none",
+                automaticLayout: true,
+                folding: true,
+                overviewRulerLanes: 0,
+                scrollbar: {
+                  vertical: "auto",
+                  horizontal: "auto",
+                  verticalScrollbarSize: 8,
+                  horizontalScrollbarSize: 8
+                }
+              }}
+            />
+          </div>
         )}
       </div>
     );
@@ -72,7 +130,7 @@ function CodeBlock({ node, inline, className, children, ...props }) {
       {children}
     </code>
   );
-} 
+}
 
 function CopyMessageButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -173,18 +231,18 @@ export default function AIResponse({ text, attachments, images = [], summary = "
           </div>
         )}
 
-        {/* 2. Executive Summary Highlight Card */}
+        {/* 2. Markdown AI Response */}
+        <ReactMarkdown components={{ code: CodeBlock }}>{text}</ReactMarkdown>
+
+        {/* 3. Conclusion & Summary Card (at the end as true synthesis) */}
         {summary && summary.trim() && (
-          <div className="summary-highlight-card">
-            <div className="summary-header">
-              <FiZap className="header-icon" size={14} /> Executive Summary
+          <div className="conclusion-highlight-card">
+            <div className="conclusion-header">
+              <FiCheckCircle className="header-icon" size={14} /> Key Conclusion & Summary
             </div>
-            <div className="summary-body">{summary}</div>
+            <div className="conclusion-body">{summary}</div>
           </div>
         )}
-
-        {/* 3. Markdown AI Response */}
-        <ReactMarkdown components={{ code: CodeBlock }}>{text}</ReactMarkdown>
 
         {/* 4. Verified Sources Section */}
         {sources && sources.length > 0 && (
