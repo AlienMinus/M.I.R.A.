@@ -389,6 +389,9 @@ class NLPService:
         ordered = self.order_by_relevance(query, deduped)
 
         overview = ordered[0] if len(ordered) > 0 else f"Key summary regarding {query}."
+        kw_overview = self.extract_salient_keywords(overview, query=query)
+        overview_hl = self.apply_markdown_highlighting(overview, kw_overview, max_highlights=3)
+
         bullets = ordered[1:6] if len(ordered) > 1 else ordered[:1]
         details = ordered[6:10] if len(ordered) > 6 else []
 
@@ -396,18 +399,23 @@ class NLPService:
             f"# {title}",
             "",
             "### Overview",
-            overview,
+            overview_hl,
             "",
             "### Key Takeaways & Findings"
         ]
 
         for b in bullets:
-            lines.append(f"- {b}")
+            kw_b = self.extract_salient_keywords(b, query=query)
+            b_hl = self.apply_markdown_highlighting(b, kw_b, max_highlights=3)
+            lines.append(f"- {b_hl}")
 
         if details:
             lines.append("")
             lines.append("### In-Depth Breakdown")
-            lines.append(" ".join(details))
+            details_text = " ".join(details)
+            kw_det = self.extract_salient_keywords(details_text, query=query)
+            details_hl = self.apply_markdown_highlighting(details_text, kw_det, max_highlights=4)
+            lines.append(details_hl)
 
         return "\n".join(lines)
 
@@ -419,7 +427,7 @@ class NLPService:
     ) -> str:
         deduped = []
         for s in sentences:
-            if not self.is_semantically_duplicate(s, deduped):
+            if not self.is_semantically_duplicate(s, deduped) and not self.is_promotional_or_boilerplate(s):
                 deduped.append(s)
 
         if not deduped:
@@ -429,18 +437,29 @@ class NLPService:
 
         if len(ordered) <= 2:
             body_paragraphs = [" ".join(ordered)]
-        else:
+        elif len(ordered) <= 5:
             mid = max(len(ordered) // 2, 1)
             p1 = " ".join(ordered[:mid])
             p2 = " ".join(ordered[mid:])
             body_paragraphs = [p1, p2]
+        else:
+            p1 = " ".join(ordered[:2])
+            p2 = " ".join(ordered[2:5])
+            p3 = " ".join(ordered[5:8])
+            body_paragraphs = [p1, p2, p3]
 
-        lines = []
+        formatted_paragraphs = []
         for p in body_paragraphs:
-            if p.strip():
-                lines.append(p.strip())
+            p_clean = p.strip()
+            if not p_clean:
+                continue
+            # Extract salient keywords via NLP POS tagging & regex
+            keywords = self.extract_salient_keywords(p_clean, query=query)
+            # Apply markdown bolding syntax
+            p_highlighted = self.apply_markdown_highlighting(p_clean, keywords, max_highlights=5)
+            formatted_paragraphs.append(p_highlighted)
 
-        return "\n\n".join(lines).strip()
+        return "\n\n".join(formatted_paragraphs).strip()
 
     def extract_summary(self, query: str, sentences: List[str], max_length: int = 250) -> str:
         """Extracts a high-impact, concise executive summary from ranked sentences."""

@@ -46,15 +46,25 @@
 
 /* Markdown Styles */
 .ai-message-bubble p {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.95rem;
+  line-height: 1.7;
+  color: #d4d4d8;
+  font-size: 14.5px;
 }
 
 .ai-message-bubble p:last-child {
   margin-bottom: 0;
 }
 
+.ai-message-bubble strong {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
 .ai-message-bubble ul, .ai-message-bubble ol {
   margin: 0.5rem 0 0.5rem 1.5rem;
+  line-height: 1.65;
 }
 
 /* Code Blocks */
