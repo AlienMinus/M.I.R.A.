@@ -13,7 +13,7 @@ import {
   FiCopy,
   FiDownload,
   FiCheck,
-  FiSparkles,
+  FiZap,
   FiFileText,
   FiEye,
   FiEdit3
@@ -315,7 +315,7 @@ export default function ResumeGeneration() {
                   className="ai-enhance-btn"
                   onClick={handleAIEnhanceSummary}
                 >
-                  <FiSparkles size={13} /> {enhanced ? "Enhanced!" : "AI Polish"}
+                  <FiZap size={13} /> {enhanced ? "Enhanced!" : "AI Polish"}
                 </button>
               </div>
               <textarea
