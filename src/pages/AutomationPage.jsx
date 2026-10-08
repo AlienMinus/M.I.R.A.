@@ -37,17 +37,16 @@ export default function AutomationPage() {
   };
 
   const handleClearHistory = () => {
-    if (window.confirm("Are you sure you want to delete all chat history? This cannot be undone.")) {
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith("mira-chat-")) {
-          localStorage.removeItem(key);
-        }
-      });
-      localStorage.removeItem("mira-current-chat-id");
-      setChatId(0);
-      setIsSettingsOpen(false);
-      window.location.reload();
-    }
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("mira-chat-")) {
+        localStorage.removeItem(key);
+      }
+    });
+    localStorage.removeItem("mira-current-chat-id");
+    setChatId(0);
+    setIsSettingsOpen(false);
+    window.dispatchEvent(new Event("mira-chat-cleared"));
+    window.dispatchEvent(new Event("mira-chat-update"));
   };
 
   return (
@@ -75,7 +74,10 @@ export default function AutomationPage() {
                 >
                   <FiMenu />
                 </button>
-                <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: 0 }}>Automation</h1>
+                <div>
+                  <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: 0 }}>Resumanager</h1>
+                  <span style={{ fontSize: "0.8rem", color: "#38bdf8", fontWeight: "500" }}>AI Resume Studio & ATS Optimizer</span>
+                </div>
               </div>
               <button 
                 onClick={() => navigate("/")}

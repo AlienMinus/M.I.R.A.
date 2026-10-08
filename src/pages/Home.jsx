@@ -18,8 +18,7 @@ export default function Home() {
   }, [chatId]);
 
   const handleSaveSettings = (settings) => {
-    console.log("Saved settings:", settings);
-    // Here you would typically update context or localStorage
+    window.dispatchEvent(new Event("mira-settings-changed"));
   };
 
   const handleNewChat = () => {
@@ -42,17 +41,16 @@ export default function Home() {
   };
 
   const handleClearHistory = () => {
-    if (window.confirm("Are you sure you want to delete all chat history? This cannot be undone.")) {
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith("mira-chat-")) {
-          localStorage.removeItem(key);
-        }
-      });
-      localStorage.removeItem("mira-current-chat-id");
-      setChatId(0);
-      setIsSettingsOpen(false);
-      window.location.reload();
-    }
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("mira-chat-")) {
+        localStorage.removeItem(key);
+      }
+    });
+    localStorage.removeItem("mira-current-chat-id");
+    setChatId(0);
+    setIsSettingsOpen(false);
+    window.dispatchEvent(new Event("mira-chat-cleared"));
+    window.dispatchEvent(new Event("mira-chat-update"));
   };
 
   return (

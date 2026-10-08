@@ -93,6 +93,13 @@ export default function Container({ chatId = 0, onMenuClick }) {
       "/api/generate"
     ];
 
+    // Read user-configured settings
+    const currentTemp = parseFloat(localStorage.getItem("mira-temperature") || "0.7");
+    const currentPrompt = localStorage.getItem("mira-system-prompt") || "";
+    const currentMaxTokens = parseInt(localStorage.getItem("mira-max-tokens") || "400", 10);
+    const allowImages = localStorage.getItem("mira-show-images") !== "false";
+    const allowStreamTyping = localStorage.getItem("mira-stream-typing") !== "false";
+
     for (const endpoint of candidateEndpoints) {
       try {
         const controller = new AbortController();
@@ -101,7 +108,13 @@ export default function Container({ chatId = 0, onMenuClick }) {
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: userMessage, format: "auto" }),
+          body: JSON.stringify({
+            prompt: userMessage,
+            format: "auto",
+            temperature: currentTemp,
+            system_prompt: currentPrompt,
+            max_tokens: currentMaxTokens
+          }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -111,7 +124,7 @@ export default function Container({ chatId = 0, onMenuClick }) {
           if (data && data.success) {
             responseData = {
               text: data.generated_text || "",
-              images: data.images || [],
+              images: allowImages ? (data.images || []) : [],
               summary: data.summary || "",
               sources: data.sources || []
             };
@@ -172,11 +185,10 @@ export default function Container({ chatId = 0, onMenuClick }) {
     }
 
     const fullText = responseData.text;
-    const finalImages = responseData.images;
+    const finalImages = allowImages ? responseData.images : [];
     const finalSummary = responseData.summary;
     const finalSources = responseData.sources;
 
-    let i = 0;
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
@@ -186,6 +198,28 @@ export default function Container({ chatId = 0, onMenuClick }) {
       typingIntervalRef.current = null;
     }
 
+    // If stream typing is disabled by user in settings, show immediately
+    if (!allowStreamTyping) {
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated.length === 0) {
+          updated.push({ role: "ai", text: fullText, images: finalImages, summary: finalSummary, sources: finalSources });
+        } else {
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            text: fullText,
+            images: finalImages,
+            summary: finalSummary,
+            sources: finalSources
+          };
+        }
+        return updated;
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    let i = 0;
     typingTimeoutRef.current = setTimeout(() => {
       const step = fullText.length > 500 ? 5 : 2;
       typingIntervalRef.current = setInterval(() => {
@@ -298,9 +332,20 @@ export default function Container({ chatId = 0, onMenuClick }) {
     listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Auto-scroll to bottom
   useEffect(() => {
-    scrollToBottom();
+    const handleClear = () => {
+      setMessages([]);
+    };
+    window.addEventListener("mira-chat-cleared", handleClear);
+    return () => window.removeEventListener("mira-chat-cleared", handleClear);
+  }, []);
+
+  // Auto-scroll to bottom (respects user settings)
+  useEffect(() => {
+    const shouldAutoScroll = localStorage.getItem("mira-autoscroll") !== "false";
+    if (shouldAutoScroll) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   // Cleanup timers on unmount
