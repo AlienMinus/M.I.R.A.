@@ -26,7 +26,11 @@ class ImageService:
             "spacer", "pixel", "tracking", "1x1", "avatar", "icon", "logo-small",
             "badge", "ad-banner", "doubleclick", "analytics", "data:image"
         ]
-        self.animal_terms = {"tiger", "tigers", "sher", "deer", "deers", "hiran", "lion", "safari", "wildlife", "animal", "cartoon"}
+        self.animal_terms = {
+            "tiger", "tigers", "sher", "deer", "deers", "hiran", "lion", "safari",
+            "wildlife", "animal", "cartoon", "bird", "birds", "parrot", "parrots",
+            "sparrow", "pigeon", "peacock", "nature wallpaper", "branch"
+        }
 
     def _clean_query(self, query: str) -> str:
         """Strips conversational noise from query for clean image searching."""
@@ -53,7 +57,7 @@ class ImageService:
         return True
 
     def _is_relevant_image(self, title: str, query: str) -> bool:
-        """Rejects absurdly unrelated images (e.g. wild animal cartoons when looking up a person)."""
+        """Rejects absurdly unrelated images (e.g. wild animals or birds when looking up text/philosophy/person)."""
         q_lower = query.lower()
         t_lower = title.lower()
         query_has_animal = any(term in q_lower for term in self.animal_terms)
@@ -65,7 +69,7 @@ class ImageService:
     def scrape_bing_images(self, query: str, limit: int = 8) -> List[Dict[str, str]]:
         """Scrapes direct image URLs from Bing Image search results."""
         clean_q = self._clean_query(query)
-        url = f"https://www.bing.com/images/search?q={urllib.parse.quote(clean_q)}&first=1"
+        url = f"https://www.bing.com/images/search?q={urllib.parse.quote(clean_q)}&setlang=en-US&cc=US&first=1"
         images = []
         try:
             resp = requests.get(url, headers=self.headers, timeout=self.timeout)

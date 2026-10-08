@@ -88,8 +88,23 @@ class SearchService:
                 pass
         return href
 
+    def _is_relevant_language(self, title: str, snippet: str, query: str) -> bool:
+        """Filters out foreign language search results (e.g. Turkish or Chinese pages for English queries)."""
+        combined = f"{title} {snippet}".lower()
+        # If query is in Latin alphabet, reject CJK search results (e.g. 知乎, 百度)
+        if not re.search(r'[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]', query):
+            if re.search(r'[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]', title):
+                return False
+
+        # Common foreign stopwords/phrases from random regional index contamination
+        foreign_words = {"yansıtırken", "sesin", "geldiğini", "görünmediğini", "fark ettin", "forumları", "nasıl", "nedir", "nasil"}
+        if any(w in combined for w in foreign_words):
+            return False
+
+        return True
+
     def search_bing(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
-        url = f"https://www.bing.com/search?q={quote(query)}"
+        url = f"https://www.bing.com/search?q={quote(query)}&setlang=en-US&cc=US"
         results = []
         try:
             resp = self.session.get(url, timeout=(2.0, 3.0))
@@ -106,6 +121,9 @@ class SearchService:
                         snippet = snippet_el.get_text(strip=True) if snippet_el else ""
 
                         if self.is_blocked(title) or self.is_blocked(snippet):
+                            continue
+
+                        if not self._is_relevant_language(title, snippet, query):
                             continue
 
                         if link and link.startswith("http") and "bing.com" not in link:

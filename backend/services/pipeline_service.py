@@ -18,6 +18,7 @@ from .nlp_service import NLPService
 from .image_service import ImageService
 from .rag_service import RAGService
 from .emotion_service import EmotionService
+from .code_service import CodeService
 
 class PipelineService:
     def __init__(self, device: str = None):
@@ -37,6 +38,7 @@ class PipelineService:
         self.image_service = ImageService()
         self.rag_service = RAGService()
         self.emotion_service = EmotionService()
+        self.code_service = CodeService()
 
         self.gpt_model, self.tokenizer = load_gpt_model(
             model_path=config.MODEL_PATH,
@@ -64,7 +66,27 @@ class PipelineService:
 
         execution_log = []
 
-        # 0. CHECK DIRECT RAG MATCH (Persona, greetings, ecosystem apps)
+        # 0. CHECK CODING REQUEST (Multi-language code generator)
+        if self.code_service.is_coding_request(prompt):
+            code_res = self.code_service.generate_code_response(prompt)
+            if code_res.get("success"):
+                elapsed = round(time.time() - start_time, 2)
+                execution_log.append(f"Synthesized code for {code_res.get('language')}.")
+                return {
+                    "success": True,
+                    "prompt": prompt,
+                    "format_applied": "code",
+                    "generated_text": code_res["text"],
+                    "summary": code_res.get("summary", ""),
+                    "images": [],
+                    "sources": [],
+                    "scraped_count": 0,
+                    "execution_time_seconds": elapsed,
+                    "pipeline_log": execution_log,
+                    "language": code_res.get("language")
+                }
+
+        # 1. CHECK DIRECT RAG MATCH (Persona, greetings, ecosystem apps)
         direct_match = self.rag_service.find_direct_response(prompt)
         if direct_match:
             elapsed = round(time.time() - start_time, 2)

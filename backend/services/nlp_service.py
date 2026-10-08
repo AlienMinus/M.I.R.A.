@@ -40,36 +40,66 @@ class NLPService:
         }
 
     def sanitize_text(self, text: str) -> str:
-        """Strips scraped HTML artifacts, phonetics, timestamps, and citations."""
+        """Strips scraped HTML artifacts, mojibake, phonetics, timestamps, and citations."""
         if not text:
             return ""
 
-        # 1. Remove Wikipedia-style phonetic pronunciation guides in parentheses
-        text = re.sub(r'\([^\)]*[əɛɪʊʌɒɔːɜːɑːθðʃʒⓘˈˌ][^\)]*\)', '', text)
+        # 1. Fix and eliminate common UTF-8 Mojibake artifacts (e.g. â€¡, â€™, â€œ)
+        text = (
+            text.replace("â€™", "'")
+                .replace("â€˜", "'")
+                .replace("â€œ", '"')
+                .replace("â€", '"')
+                .replace("â€”", "—")
+                .replace("â€“", "–")
+                .replace("â€¦", "...")
+                .replace("â€¢", "•")
+                .replace("â€¡", "")
+                .replace("Ã©", "e")
+                .replace("Ã¡", "a")
+        )
+        text = re.sub(r'â€[^\w\s]*', '', text)
 
-        # 2. Remove stray IPA slashes /.../
+        # 2. Remove Wikipedia dictionary language & phonetic pronunciation headers (both closed and unclosed)
+        text = re.sub(r'\(\s*;\s*(?:Sanskrit|Hindi|IPA|romanized|Arabic|Greek|Latin|lit\.)[^\)]*(?:\)|$)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\([^\)]*(?:Sanskrit|Hindi|IPA|romanized|pronounced|lit\.|meaning\s+[\'"])[^\)]*\)', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\([^\)]*[\u0900-\u097F\u0600-\u06FF\u4E00-\u9FFF\u0400-\u04FF]+[^\)]*\)', '', text)
+        text = re.sub(r'\([^\)]*[əɛɪʊʌɒɔːɜːɑːθðʃʒⓘˈˌʱɐɡ][^\)]*\)', '', text)
+
+        # 3. Remove IPA and phonetic brackets [IPA: ...] or [ˌbʱɐ...]
+        text = re.sub(r'\[\s*IPA:[^\]]*\]', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\[[^\]]*[ˌˈːʱɐɡʊɒɔɜɑθðʃʒŋʔ][^\]]*\]', '', text)
+
+        # 4. Remove stray IPA slashes /.../ and cryptic phonetic characters
         text = re.sub(r'/[^/\n]{1,30}/', '', text)
+        text = re.sub(r'[ˌˈːʱɐɡʊɒɔɜɑθðʃʒŋʔ]', '', text)
 
-        # 3. Remove orphaned phonetic prefixes ending in a parenthesis, e.g. "g əl / ⓘ, GOO -gəl )"
+        # 5. Remove isolated non-Latin script clutter (Devanagari, etc.) in English text
+        text = re.sub(r'[\u0900-\u097F]+', '', text)
+
+        # 6. Remove orphaned phonetic prefixes ending in a parenthesis, e.g. "g əl / ⓘ, GOO -gəl )"
         text = re.sub(r'^[^\)\n]{1,60}\)\s*', '', text)
 
-        # 4. Remove leading search timestamps (e.g., "3 days ago·", "Sep 3, 2026·")
+        # 7. Remove leading search timestamps (e.g., "3 days ago·", "Sep 3, 2026·")
         text = re.sub(r'^\d+\s+(days?|hours?|mins?|weeks?|months?|years?)\s+ago\s*[\xb7\.\-]?\s*', '', text, flags=re.IGNORECASE)
         text = re.sub(r'^[A-Z][a-z]{2,8}\s+\d{1,2},\s+\d{4}\s*[\xb7\.\-]?\s*', '', text)
         text = re.sub(r'\b\d+\s+(days?|hours?|mins?|weeks?|months?|years?)\s+ago\s*[\xb7\.\-]?\s*', '', text, flags=re.IGNORECASE)
 
-        # 5. Remove leading stray punctuation
-        text = re.sub(r'^[\)\],;:\s\.\xb7\-]+', '', text)
+        # 8. Remove leading stray punctuation and orphaned opening parenthesis
+        text = re.sub(r'^[;\(\)\[\],;:\s\.\xb7\-]+', '', text)
+        text = re.sub(r'\(\s*[;:,]\s*', '(', text)
+        text = re.sub(r'\(\s*\)', '', text)
+        text = re.sub(r'\s+,\s+', ', ', text)
 
-        # 6. Remove multiple dots / ellipses
+        # 9. Remove multiple dots / ellipses
         text = re.sub(r'\.{2,}', '', text)
         text = re.sub(r'…', '', text)
 
-        # 7. Remove Wikipedia citation markers [1], [2], [edit], [citation needed]
+        # 10. Remove Wikipedia citation markers [1], [2], [edit], [citation needed]
         text = re.sub(r'\[\s*\d+\s*\]', '', text)
         text = re.sub(r'\[(edit|citation needed|note \d+)\]', '', text, flags=re.IGNORECASE)
 
-        # 8. Normalize whitespace
+        # 11. Normalize whitespace
         text = re.sub(r'\s+', ' ', text).strip()
         return text
 
@@ -150,6 +180,15 @@ class NLPService:
         # Fix spacing before punctuation
         s = re.sub(r'\s+([,.:;?!])', r'\1', s)
         s = re.sub(r'([,.:;?!])([A-Za-z])', r'\1 \2', s)
+
+        # Strip trailing dangling punctuation like colons, semicolons, dashes
+        s = re.sub(r'[\s,;:–—\-]+$', '', s).strip()
+        if not s:
+            return ""
+
+        # Discard fragments that end abruptly with truncated dictionary markers
+        if re.search(r'\b(lit|romanized|pronounced|meaning)\.?$', s, re.IGNORECASE):
+            return ""
 
         # Capitalize first letter
         s = s[0].upper() + s[1:]

@@ -94,10 +94,19 @@ class RAGService:
 
         words = norm_query.split()
 
-        # 1. Check Ecosystem Apps
+        # 0. Skip RAG completely for programming / code generation requests
+        coding_markers = ["write a", "code for", "program to", "how to code", "how to write", "script to", "implement", "print hello"]
+        if any(marker in norm_query for marker in coding_markers):
+            return None
+
+        # 1. Check Ecosystem Apps (Strict exact or explicit launch intent)
         for app_key, app in self.app_index.items():
-            pattern = rf"\b{re.escape(app_key)}\b"
-            if re.search(pattern, norm_query):
+            is_exact = norm_query == app_key
+            is_launch_intent = norm_query in {
+                f"open {app_key}", f"launch {app_key}", f"go to {app_key}",
+                f"{app_key} app", f"what is {app_key}", f"about {app_key}"
+            }
+            if is_exact or is_launch_intent:
                 label = app.get("label", app_key.title())
                 desc = app.get("desc", "")
                 link = app.get("link", "#")
@@ -132,11 +141,13 @@ class RAGService:
             }
 
         # 3. High-confidence phrase matching for multi-word persona queries
-        if len(words) >= 2:
+        # Only trigger if the user query is very short (<= 4 words) and predominantly matches the key
+        if 2 <= len(words) <= 4:
             best_match = None
             best_len = 0
             for k, text in self.knowledge_base.items():
-                if len(k.split()) >= 2 and (k in norm_query or norm_query in k):
+                k_words = k.split()
+                if len(k_words) >= 2 and (norm_query == k or norm_query == f"who is {k}" or norm_query == f"what is {k}"):
                     if len(k) > best_len:
                         best_match = text
                         best_len = len(k)
