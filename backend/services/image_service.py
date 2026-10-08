@@ -57,13 +57,26 @@ class ImageService:
         return True
 
     def _is_relevant_image(self, title: str, query: str) -> bool:
-        """Rejects absurdly unrelated images (e.g. wild animals or birds when looking up text/philosophy/person)."""
+        """Rejects absurdly unrelated images (e.g. wild animals, birds, blueprints, CAD diagrams)."""
         q_lower = query.lower()
         t_lower = title.lower()
+
+        # 1. Reject unrelated technical diagrams, blueprints, foundation drawings, CAD
+        diagram_banned = {
+            "foundation", "footing", "blueprint", "cad", "diagram", "schematic",
+            "dimensions.com", "column footing", "slope of", "structure drawing",
+            "construction", "elevation", "floor plan", "circuit"
+        }
+        if not any(term in q_lower for term in ["diagram", "blueprint", "cad", "foundation", "footing"]):
+            if any(term in t_lower for term in diagram_banned):
+                return False
+
+        # 2. Reject wild animals / birds / parrots for non-animal queries
         query_has_animal = any(term in q_lower for term in self.animal_terms)
         if not query_has_animal:
             if any(term in t_lower for term in self.animal_terms):
                 return False
+
         return True
 
     def scrape_bing_images(self, query: str, limit: int = 8) -> List[Dict[str, str]]:
@@ -181,28 +194,32 @@ class ImageService:
             seen_urls.add(u)
             combined.append(img)
 
-        # 1. Fetch Bing and Wikimedia in parallel
+        # 1. Fetch Wikimedia and Bing in parallel, prioritizing encyclopedic Wikimedia Commons
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            bing_future = executor.submit(self.scrape_bing_images, search_query, limit=target_count)
             wiki_future = executor.submit(self.scrape_wikimedia_images, search_query, limit=target_count)
+            bing_future = executor.submit(self.scrape_bing_images, search_query, limit=target_count)
 
+            # Prioritize verified encyclopedic Wikimedia images first
             try:
-                for img in bing_future.result(timeout=4.0):
+                for img in wiki_future.result(timeout=5.0):
                     add_img(img)
             except Exception:
                 pass
 
+            # Supplement with verified Bing images
             try:
-                for img in wiki_future.result(timeout=4.0):
+                for img in bing_future.result(timeout=5.0):
                     add_img(img)
             except Exception:
                 pass
 
-        # 2. Extract images from scraped pages if needed
+        # 2. Extract images from scraped pages ONLY if verified relevant
         if len(combined) < min_images and scraped_html_list:
             for page in scraped_html_list:
                 for img in page.get("images", []):
-                    add_img(img)
+                    img_title = img.get("title", "")
+                    if self._is_relevant_image(img_title, search_query):
+                        add_img(img)
                 if len(combined) >= min_images:
                     break
 
