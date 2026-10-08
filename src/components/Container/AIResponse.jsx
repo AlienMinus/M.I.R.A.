@@ -90,6 +90,45 @@ function CopyMessageButton({ text }) {
   );
 }
 
+function MicrochipLoader() {
+  const phases = [
+    "Scanning neural knowledge base...",
+    "Querying live web index...",
+    "Scraping & verifying references...",
+    "Extracting verified topic visuals...",
+    "Bi-LSTM scoring & synthesis...",
+    "Synthesizing neural response..."
+  ];
+  const [phaseIdx, setPhaseIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPhaseIdx((prev) => (prev < phases.length - 1 ? prev + 1 : prev));
+    }, 1800);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="ai-response-container">
+      <div className="ai-message-bubble microchip-bubble" role="status" aria-live="polite">
+        <div className="microchip-loader-box">
+          <div className="microchip-icon-wrapper">
+            <FiCpu className="microchip-icon-pulse" size={18} />
+            <span className="microchip-ping-ring"></span>
+          </div>
+          <div className="microchip-status-text">
+            <span className="microchip-engine-tag">MIRA NEURAL ENGINE</span>
+            <span className="microchip-phase-label">{phases[phaseIdx]}</span>
+          </div>
+          <div className="microchip-activity-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AIResponse({ text, attachments, images = [], summary = "", sources = [] }) {
   const [activeImage, setActiveImage] = useState(null);
 
@@ -107,15 +146,7 @@ export default function AIResponse({ text, attachments, images = [], summary = "
       );
     }
 
-    return (
-      <div className="ai-response-container">
-        <div className="ai-message-bubble" role="status" aria-live="polite">
-          <div className="thinking-dots">
-            <span></span><span></span><span></span>
-          </div>
-        </div>
-      </div>
-    );
+    return <MicrochipLoader />;
   }
 
   return (
