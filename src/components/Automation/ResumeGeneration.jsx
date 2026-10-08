@@ -38,10 +38,26 @@ export default function ResumeGeneration() {
   const [computedScale, setComputedScale] = useState(0.72);
   const [docHeight, setDocHeight] = useState(1123);
 
+  // Split View Horizontal Span (Adjustable separator)
+  const [splitRatio, setSplitRatio] = useState(() => {
+    try {
+      const saved = localStorage.getItem("mira_resume_split_ratio");
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= 20 && parsed <= 80) return parsed;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return 48; // default 48% editor / 52% preview
+  });
+  const [isDraggingSplitter, setIsDraggingSplitter] = useState(false);
+
   const photoInputRef = useRef(null);
   const jsonImportRef = useRef(null);
   const viewerPaneRef = useRef(null);
   const innerDocRef = useRef(null);
+  const workspaceRef = useRef(null);
 
   // Current active profile
   const currentProfile =
@@ -93,7 +109,7 @@ export default function ResumeGeneration() {
       if (ro) ro.disconnect();
       else window.removeEventListener("resize", calculateScale);
     };
-  }, [activeView, currentProfile]);
+  }, [activeView, currentProfile, splitRatio]);
 
   const fitWidthScale = viewerPaneRef.current
     ? (viewerPaneRef.current.clientWidth - 28) / 794
@@ -105,6 +121,84 @@ export default function ResumeGeneration() {
       : zoomMode === "fit-width"
       ? Math.max(0.3, Math.min(fitWidthScale, 1.5))
       : customScale;
+
+  // Split View Dragging Handlers
+  const startDraggingSplitter = (clientX) => {
+    setIsDraggingSplitter(true);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMove = (e) => {
+      if (!workspaceRef.current) return;
+      const x = e.touches ? e.touches[0].clientX : e.clientX;
+      const rect = workspaceRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const rawPercent = ((x - rect.left) / rect.width) * 100;
+      const clamped = Math.max(20, Math.min(80, rawPercent));
+      const rounded = Math.round(clamped * 10) / 10;
+      setSplitRatio(rounded);
+      try {
+        localStorage.setItem("mira_resume_split_ratio", rounded.toString());
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    const handleEnd = () => {
+      setIsDraggingSplitter(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleEnd);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleEnd);
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleEnd);
+    window.addEventListener("touchmove", handleMove, { passive: true });
+    window.addEventListener("touchend", handleEnd);
+  };
+
+  const handleMouseDownSplitter = (e) => {
+    e.preventDefault();
+    startDraggingSplitter(e.clientX);
+  };
+
+  const handleTouchStartSplitter = (e) => {
+    if (e.touches && e.touches[0]) {
+      startDraggingSplitter(e.touches[0].clientX);
+    }
+  };
+
+  const handleResetSplitter = () => {
+    setSplitRatio(48);
+    try {
+      localStorage.setItem("mira_resume_split_ratio", "48");
+    } catch (e) {}
+    showToast("Split view span reset to default (48:52)");
+  };
+
+  const handleKeyDownSplitter = (e) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setSplitRatio((prev) => {
+        const nextVal = Math.max(20, Math.round((prev - 2) * 10) / 10);
+        try { localStorage.setItem("mira_resume_split_ratio", nextVal.toString()); } catch (err) {}
+        return nextVal;
+      });
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setSplitRatio((prev) => {
+        const nextVal = Math.min(80, Math.round((prev + 2) * 10) / 10);
+        try { localStorage.setItem("mira_resume_split_ratio", nextVal.toString()); } catch (err) {}
+        return nextVal;
+      });
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      handleResetSplitter();
+    }
+  };
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -354,7 +448,18 @@ export default function ResumeGeneration() {
       />
 
       {/* Main Workspace Layout */}
-      <div className={`workspace-grid view-${activeView}`}>
+      <div
+        ref={workspaceRef}
+        className={`workspace-grid view-${activeView} ${isDraggingSplitter ? "is-resizing" : ""}`}
+        style={
+          activeView === "split"
+            ? {
+                gridTemplateColumns: `${splitRatio}% 10px minmax(0, 1fr)`,
+                gap: 0
+              }
+            : undefined
+        }
+      >
         {/* Button-wise Section Navigation Editor */}
         {(activeView === "split" || activeView === "admin") && (
           <ResumeEditor
@@ -364,6 +469,27 @@ export default function ResumeGeneration() {
             onRemovePhoto={handleRemovePhoto}
             onAiPolishSummary={handleAIEnhanceSummary}
           />
+        )}
+
+        {/* Adjustable Split View Separator */}
+        {activeView === "split" && (
+          <div
+            className={`split-view-separator ${isDraggingSplitter ? "active" : ""}`}
+            onMouseDown={handleMouseDownSplitter}
+            onTouchStart={handleTouchStartSplitter}
+            onDoubleClick={handleResetSplitter}
+            onKeyDown={handleKeyDownSplitter}
+            tabIndex={0}
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuenow={splitRatio}
+            aria-valuemin={20}
+            aria-valuemax={80}
+            title="Drag horizontally to resize panels (Double-click to reset, Arrow keys to adjust)"
+          >
+            <div className="separator-handle-line" />
+            <div className="separator-handle-pill" />
+          </div>
         )}
 
         {/* ATS Resume Viewer Pane */}
