@@ -12,6 +12,7 @@ from .scraper_service import ScraperService
 from .nlp_service import NLPService
 from .image_service import ImageService
 from .rag_service import RAGService
+from .emotion_service import EmotionService
 
 class PipelineService:
     def __init__(self, device: str = None):
@@ -30,6 +31,7 @@ class PipelineService:
         self.nlp_service = NLPService()
         self.image_service = ImageService()
         self.rag_service = RAGService()
+        self.emotion_service = EmotionService()
 
         self.gpt_model, self.tokenizer = load_gpt_model(
             model_path=config.MODEL_PATH,
@@ -75,6 +77,27 @@ class PipelineService:
                 "pipeline_log": execution_log,
                 "is_rag": True
             }
+
+        # 0.5 CHECK EMOTIONAL CONVERSATIONAL QUERY
+        if self.emotion_service.is_conversational_emotional_prompt(prompt):
+            detected_emo, conf = self.emotion_service.analyze_emotion(prompt)
+            if detected_emo:
+                elapsed = round(time.time() - start_time, 2)
+                emotional_text = self.emotion_service.generate_emotional_response(prompt, detected_emo)
+                execution_log.append(f"Emotion engine detected: '{detected_emo}' (conf: {conf:.2f}).")
+                return {
+                    "success": True,
+                    "prompt": prompt,
+                    "format_applied": "emotional",
+                    "generated_text": emotional_text,
+                    "summary": "",
+                    "images": [],
+                    "sources": [],
+                    "scraped_count": 0,
+                    "execution_time_seconds": elapsed,
+                    "pipeline_log": execution_log,
+                    "emotion": detected_emo
+                }
 
         # 1. WEB SEARCH
         execution_log.append("Executing web search...")
