@@ -98,13 +98,21 @@ class PipelineService:
 
         # 3. SCRAPE TOPIC IMAGES (Bing + Wikimedia + Scraped Page Images, min 5)
         execution_log.append("Extracting high-resolution topic imagery...")
+        canonical_topic = prompt
+        if search_results:
+            top_title = search_results[0].get("title", "")
+            clean_title = re.split(r'[-–—|:]', top_title)[0].strip()
+            if len(clean_title) >= 3 and not any(w in clean_title.lower() for w in ["search", "results", "overview", "login"]):
+                canonical_topic = clean_title
+
         topic_images = self.image_service.get_topic_images(
             query=prompt,
+            canonical_topic=canonical_topic,
             scraped_html_list=scraped_sources,
             min_images=5,
             target_count=8
         )
-        execution_log.append(f"Retrieved {len(topic_images)} verified images.")
+        execution_log.append(f"Retrieved {len(topic_images)} verified images for '{canonical_topic}'.")
 
         # 4. PYTORCH GPT MODEL GENERATION
         execution_log.append("Generating response with PyTorch GPT model...")
