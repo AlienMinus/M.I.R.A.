@@ -1,4 +1,6 @@
 import re
+import html
+import json
 import urllib.parse
 from typing import List, Dict, Any, Optional
 import concurrent.futures
@@ -8,20 +10,21 @@ from bs4 import BeautifulSoup
 
 class ImageService:
     """
-    Dedicated image scraping service that extracts relevant, high-resolution
-    topic images using Wikimedia Commons (authentic media), Wikipedia PageImages,
-    Bing Images (with strict commercial/CAD filtering), and verified web sources.
+    Dedicated image intelligence and scraping service that extracts relevant, high-resolution
+    topic images using Wikimedia Commons (canonical encyclopedic media), Wikipedia PageImages,
+    Bing Images (with strict B2B/CAD/blueprint filtering), and verified web sources.
     Guarantees at least 5 images related to the topic.
     """
-    def __init__(self, timeout: int = 4):
-        self.timeout = (2.5, 4.0)
+    def __init__(self, timeout: float = 4.0):
+        self.timeout = (2.5, timeout)
+        self.session = requests.Session()
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
         }
         self.wiki_headers = {
-            "User-Agent": "MIRA-Intelligence-Engine/1.0 (contact@mira.local; research bot)",
+            "User-Agent": "MIRA-Intelligence-Search/2.0 (mira-dev@lexcodex.local; verified academic bot)",
             "Accept": "application/json"
         }
         self.banned_substrings = [
@@ -32,7 +35,8 @@ class ImageService:
         self.banned_domains = [
             "imimg.com", "indiamart.com", "tistatic.com", "tradeindia.com",
             "advancelam.com", "dimensions.com", "vectorstock.com",
-            "aliexpress.com", "alibaba.com", "shutterstock.com", "alamy.com"
+            "aliexpress.com", "alibaba.com", "shutterstock.com", "alamy.com",
+            "etsystatic.com", "clipart-library.com", "printblame.com"
         ]
         self.animal_terms = {
             "tiger", "tigers", "sher", "deer", "deers", "hiran", "lion", "safari",
@@ -43,11 +47,13 @@ class ImageService:
             "foundation", "footing", "blueprint", "cad", "diagram", "schematic",
             "dimensions.com", "column footing", "slope of", "structure drawing",
             "construction", "elevation", "floor plan", "circuit", "laminate",
-            "sunmica", "mdf", "plywood", "wood sheet", "timber board"
+            "sunmica", "mdf", "plywood", "wood sheet", "timber board", "financial",
+            "goal", "worksheet", "planning goal"
         }
+        self.honorifics = {"shrimad", "srimad", "shree", "shri", "sri", "lord", "holy", "saint", "sant"}
 
     def _clean_query(self, query: str) -> str:
-        """Strips conversational noise from query for clean image searching."""
+        """Strips conversational noise and prefixes from query for clean image searching."""
         prefixes = [
             r'^(please\s+)?give\s+me\s+(structured\s+)?(notes|summary|details|an\s+essay|bullet\s+points|bullets|information)\s+(on|about|regarding)\s+',
             r'^(please\s+)?(key\s+)?(notes|summary|bullet\s+points|bullets)\s+(on|about|regarding)\s+',
@@ -61,6 +67,33 @@ class ImageService:
             cleaned = re.sub(pat, '', cleaned, flags=re.IGNORECASE).strip()
         cleaned = re.sub(r'[\?\.\!]+$', '', cleaned).strip()
         return cleaned if len(cleaned) >= 2 else query.strip()
+
+    def _get_query_variations(self, query: str) -> List[str]:
+        """Generates alternate search keys (stripping honorifics and Hindi compounds)."""
+        clean_q = self._clean_query(query)
+        variations = [clean_q]
+
+        words = clean_q.split()
+        no_hon = " ".join([w for w in words if w.lower() not in self.honorifics]).strip()
+        if no_hon and no_hon.lower() != clean_q.lower():
+            variations.append(no_hon)
+
+        q_lower = clean_q.lower()
+        if "mahapuran" in q_lower or "bhagwat" in q_lower:
+            variations.extend(["bhagavata purana", "bhagwat puran", "bhagavad gita"])
+
+        if "gita" in q_lower and "bhagavad" not in q_lower:
+            variations.append("bhagavad gita")
+
+        # Deduplicate preserving order
+        seen = set()
+        res = []
+        for v in variations:
+            norm = " ".join(v.split())
+            if norm.lower() not in seen:
+                seen.add(norm.lower())
+                res.append(norm)
+        return res
 
     def _is_valid_image_url(self, url: str) -> bool:
         if not url or not url.startswith("http"):
@@ -97,47 +130,54 @@ class ImageService:
         Queries Wikimedia Commons (commons.wikimedia.org, namespace 6 File:)
         for authentic, encyclopedic, public-domain illustrations, paintings, manuscripts, and photos.
         """
-        clean_q = self._clean_query(query)
-        url = (
-            f"https://commons.wikimedia.org/w/api.php?action=query&format=json"
-            f"&generator=search&gsrsearch={urllib.parse.quote(clean_q)}"
-            f"&gsrnamespace=6&gsrlimit={limit + 4}&prop=imageinfo&iiprop=url|mime&iiurlwidth=800"
-        )
+        search_terms = self._get_query_variations(query)
         images = []
-        try:
-            resp = requests.get(url, headers=self.wiki_headers, timeout=self.timeout)
-            if resp.status_code == 200:
-                data = resp.json()
-                pages = data.get("query", {}).get("pages", {})
-                for pid, p in pages.items():
-                    infos = p.get("imageinfo", [])
-                    if not infos:
-                        continue
-                    info = infos[0]
-                    mime = info.get("mime", "").lower()
-                    if not mime.startswith("image/"):
-                        continue
+        seen_urls = set()
 
-                    img_url = info.get("thumburl") or info.get("url")
-                    if not self._is_valid_image_url(img_url):
-                        continue
+        for term in search_terms:
+            if len(images) >= limit:
+                break
+            url = (
+                f"https://commons.wikimedia.org/w/api.php?action=query&format=json"
+                f"&generator=search&gsrsearch={urllib.parse.quote(term)}"
+                f"&gsrnamespace=6&gsrlimit={limit + 2}&prop=imageinfo&iiprop=url|mime&iiurlwidth=800"
+            )
+            try:
+                resp = self.session.get(url, headers=self.wiki_headers, timeout=self.timeout)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    pages = data.get("query", {}).get("pages", {})
+                    for pid, p in pages.items():
+                        infos = p.get("imageinfo", [])
+                        if not infos:
+                            continue
+                        info = infos[0]
+                        mime = info.get("mime", "").lower()
+                        if not mime.startswith("image/"):
+                            continue
 
-                    raw_title = p.get("title", "")
-                    clean_title = re.sub(r'^File:\s*', '', raw_title, flags=re.IGNORECASE)
-                    clean_title = re.sub(r'\.(jpg|jpeg|png|webp|gif)$', '', clean_title, flags=re.IGNORECASE).strip()
+                        img_url = info.get("thumburl") or info.get("url")
+                        if not self._is_valid_image_url(img_url) or img_url in seen_urls:
+                            continue
 
-                    if not self._is_relevant_image(clean_title, query, img_url):
-                        continue
+                        raw_title = p.get("title", "")
+                        clean_title = re.sub(r'^File:\s*', '', raw_title, flags=re.IGNORECASE)
+                        clean_title = re.sub(r'\.(jpg|jpeg|png|webp|gif)$', '', clean_title, flags=re.IGNORECASE).strip()
 
-                    images.append({
-                        "url": img_url,
-                        "title": clean_title[:80] or clean_q.title(),
-                        "source": "Wikimedia Commons"
-                    })
-                    if len(images) >= limit:
-                        break
-        except Exception as e:
-            print(f"[ImageService] Wikimedia Commons error for '{clean_q}': {e}")
+                        if not self._is_relevant_image(clean_title, query, img_url):
+                            continue
+
+                        seen_urls.add(img_url)
+                        images.append({
+                            "url": img_url,
+                            "title": clean_title[:80] or term.title(),
+                            "source": "Wikimedia Commons"
+                        })
+                        if len(images) >= limit:
+                            break
+            except Exception as e:
+                pass
+
         return images
 
     def scrape_wikipedia_article_images(self, query: str, limit: int = 4) -> List[Dict[str, str]]:
@@ -153,18 +193,16 @@ class ImageService:
         )
         images = []
         try:
-            resp = requests.get(url, headers=self.wiki_headers, timeout=self.timeout)
+            resp = self.session.get(url, headers=self.wiki_headers, timeout=self.timeout)
             if resp.status_code == 200:
                 data = resp.json()
                 pages = data.get("query", {}).get("pages", {})
-                
-                # Extract query keywords for title verification
                 q_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', clean_q.lower()))
 
                 for pid, p in pages.items():
                     if "thumbnail" not in p or not p["thumbnail"].get("source"):
                         continue
-                    
+
                     page_title = p.get("title", "")
                     title_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', page_title.lower()))
 
@@ -187,7 +225,7 @@ class ImageService:
                     if len(images) >= limit:
                         break
         except Exception as e:
-            print(f"[ImageService] Wikipedia article images error for '{clean_q}': {e}")
+            pass
         return images
 
     def scrape_bing_images(self, query: str, limit: int = 6) -> List[Dict[str, str]]:
@@ -196,27 +234,30 @@ class ImageService:
         url = f"https://www.bing.com/images/search?q={urllib.parse.quote(clean_q)}&setlang=en-US&cc=US&first=1"
         images = []
         try:
-            resp = requests.get(url, headers=self.headers, timeout=self.timeout)
+            resp = self.session.get(url, headers=self.headers, timeout=self.timeout)
             if resp.status_code == 200:
-                murls = re.findall(r'&quot;murl&quot;:&quot;(https?://[^&]+?)&quot;', resp.text)
-                titles = re.findall(r'&quot;tft&quot;:&quot;([^&]+?)&quot;', resp.text)
-
-                for i, img_url in enumerate(murls):
-                    if not self._is_valid_image_url(img_url):
+                blocks = re.findall(r'class="iusc"[^>]*m="([^"]+)"', resp.text)
+                for b in blocks:
+                    try:
+                        data = json.loads(html.unescape(b))
+                        img_url = data.get("murl")
+                        if not self._is_valid_image_url(img_url):
+                            continue
+                        title = data.get("tft", "").strip() or clean_q.title()
+                        title = re.sub(r'&[a-zA-Z]+;', ' ', title).strip()
+                        if not self._is_relevant_image(title, query, img_url):
+                            continue
+                        images.append({
+                            "url": img_url,
+                            "title": title[:80],
+                            "source": "Web Search"
+                        })
+                        if len(images) >= limit:
+                            break
+                    except Exception:
                         continue
-                    title = titles[i].strip() if i < len(titles) and titles[i].strip() else clean_q.title()
-                    title = re.sub(r'&[a-zA-Z]+;', ' ', title).strip()
-                    if not self._is_relevant_image(title, query, img_url):
-                        continue
-                    images.append({
-                        "url": img_url,
-                        "title": title[:80],
-                        "source": "Web Search"
-                    })
-                    if len(images) >= limit:
-                        break
         except Exception as e:
-            print(f"[ImageService] Bing images failed for '{clean_q}': {e}")
+            pass
         return images
 
     def extract_images_from_html(self, html: str, page_url: str, base_title: str = "", query: str = "") -> List[Dict[str, str]]:
