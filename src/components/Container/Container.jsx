@@ -115,6 +115,10 @@ export default function Container({ chatId = 0, onMenuClick }) {
               summary: data.summary || "",
               sources: data.sources || []
             };
+            if (data.topic_title) {
+              localStorage.setItem(`mira-chat-title-${chatId}`, data.topic_title);
+              window.dispatchEvent(new Event("mira-chat-update"));
+            }
             break;
           } else if (data && !data.success && data.generated_text) {
             responseData = {

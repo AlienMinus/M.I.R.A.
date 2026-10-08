@@ -228,13 +228,19 @@ class NLPService:
             # Ensure sentence is topically relevant to query
             if query_keywords:
                 s_words = set(re.findall(r'\b\w+\b', s.lower()))
-                has_keyword = bool(s_words & query_keywords)
-                has_stem = any(
-                    len(qw) >= 4 and any(qw in sw or sw in qw for sw in s_words if len(sw) >= 4)
-                    for qw in query_keywords
-                )
-                if not (has_keyword or has_stem):
-                    continue
+                if len(query_keywords) >= 2:
+                    distinctive = list(query_keywords)[-1]
+                    overlap_count = len(s_words & query_keywords)
+                    if overlap_count < 2 and distinctive not in s_words:
+                        continue
+                else:
+                    has_keyword = bool(s_words & query_keywords)
+                    has_stem = any(
+                        len(qw) >= 4 and any(qw in sw or sw in qw for sw in s_words if len(sw) >= 4)
+                        for qw in query_keywords
+                    )
+                    if not (has_keyword or has_stem):
+                        continue
 
             if not self.is_semantically_duplicate(s, cleaned):
                 cleaned.append(s)
@@ -504,15 +510,26 @@ class NLPService:
         return "\n\n".join(formatted_paragraphs).strip()
 
     def extract_summary(self, query: str, sentences: List[str], max_length: int = 250) -> str:
-        """Extracts a high-impact, concise executive summary from ranked sentences."""
+        """
+        Synthesizes a distinct, high-impact concluding takeaway summarizing the response,
+        ensuring it does NOT duplicate the opening introductory paragraph.
+        """
         if not sentences:
-            return f"Information regarding {query} was analyzed and synthesized."
+            return f"Information regarding {query} was comprehensively analyzed and synthesized."
         ordered = self.order_by_relevance(query, sentences)
-        summary_sentences = ordered[:2]
-        summary = " ".join(summary_sentences).strip()
-        if len(summary) > max_length:
-            summary = summary[:max_length].rstrip(" ,;.") + "..."
-        return summary
+
+        # Select a concluding takeaway distinct from paragraph 1 (which uses ordered[0] and ordered[1])
+        if len(ordered) >= 3:
+            candidate = ordered[2] if len(ordered) == 3 else ordered[-1]
+            conclusion = f"In summary, {candidate.strip()}"
+        elif len(ordered) == 2:
+            conclusion = f"Overall, {ordered[1].strip()}"
+        else:
+            conclusion = f"Key takeaway: {ordered[0].strip()}"
+
+        if len(conclusion) > max_length:
+            conclusion = conclusion[:max_length].rstrip(" ,;.") + "..."
+        return conclusion
 
     def format_response(
         self,

@@ -106,10 +106,11 @@ class ImageService:
         return True
 
     def _is_relevant_image(self, title: str, query: str, url: str = "") -> bool:
-        """Rejects absurdly unrelated images (e.g. wild animals, birds, blueprints, CAD diagrams, laminates)."""
+        """Rejects absurdly unrelated images (e.g. wild animals, birds, blueprints, CAD diagrams, laminates, partial name mismatches)."""
         q_lower = query.lower()
         t_lower = (title or "").lower()
         u_lower = (url or "").lower()
+        t_and_u = f"{t_lower} {u_lower}"
 
         # 1. Reject unrelated technical diagrams, blueprints, foundation drawings, CAD, wood laminates
         query_wants_diagram = any(term in q_lower for term in ["diagram", "blueprint", "cad", "foundation", "footing", "laminate", "wood"])
@@ -121,6 +122,17 @@ class ImageService:
         query_has_animal = any(term in q_lower for term in self.animal_terms)
         if not query_has_animal:
             if any(term in t_lower or term in u_lower for term in self.animal_terms):
+                return False
+
+        # 3. Guard against partial name false-positives (e.g. "Bulletin of Elon College" for "Elon Musk")
+        clean_words = [w.lower() for w in re.findall(r'\b[a-zA-Z]{3,}\b', query) if w.lower() not in self.honorifics]
+        if len(clean_words) >= 2:
+            distinctive = clean_words[-1]  # e.g., "musk", "gita", "heard", "einstein"
+            if distinctive not in t_and_u and not all(w in t_and_u for w in clean_words):
+                return False
+        elif len(clean_words) == 1:
+            w = clean_words[0]
+            if w not in t_and_u:
                 return False
 
         return True
@@ -137,46 +149,51 @@ class ImageService:
         for term in search_terms:
             if len(images) >= limit:
                 break
-            url = (
-                f"https://commons.wikimedia.org/w/api.php?action=query&format=json"
-                f"&generator=search&gsrsearch={urllib.parse.quote(term)}"
-                f"&gsrnamespace=6&gsrlimit={limit + 2}&prop=imageinfo&iiprop=url|mime&iiurlwidth=800"
-            )
-            try:
-                resp = self.session.get(url, headers=self.wiki_headers, timeout=self.timeout)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    pages = data.get("query", {}).get("pages", {})
-                    for pid, p in pages.items():
-                        infos = p.get("imageinfo", [])
-                        if not infos:
-                            continue
-                        info = infos[0]
-                        mime = info.get("mime", "").lower()
-                        if not mime.startswith("image/"):
-                            continue
+            # Try exact quoted phrase first for multi-word entities, then plain term
+            phrases_to_try = [f'"{term}"', term] if len(term.split()) >= 2 else [term]
+            for phrase in phrases_to_try:
+                if len(images) >= limit:
+                    break
+                url = (
+                    f"https://commons.wikimedia.org/w/api.php?action=query&format=json"
+                    f"&generator=search&gsrsearch={urllib.parse.quote(phrase)}"
+                    f"&gsrnamespace=6&gsrlimit={limit + 2}&prop=imageinfo&iiprop=url|mime&iiurlwidth=800"
+                )
+                try:
+                    resp = self.session.get(url, headers=self.wiki_headers, timeout=self.timeout)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        pages = data.get("query", {}).get("pages", {})
+                        for pid, p in pages.items():
+                            infos = p.get("imageinfo", [])
+                            if not infos:
+                                continue
+                            info = infos[0]
+                            mime = info.get("mime", "").lower()
+                            if not mime.startswith("image/"):
+                                continue
 
-                        img_url = info.get("thumburl") or info.get("url")
-                        if not self._is_valid_image_url(img_url) or img_url in seen_urls:
-                            continue
+                            img_url = info.get("thumburl") or info.get("url")
+                            if not self._is_valid_image_url(img_url) or img_url in seen_urls:
+                                continue
 
-                        raw_title = p.get("title", "")
-                        clean_title = re.sub(r'^File:\s*', '', raw_title, flags=re.IGNORECASE)
-                        clean_title = re.sub(r'\.(jpg|jpeg|png|webp|gif)$', '', clean_title, flags=re.IGNORECASE).strip()
+                            raw_title = p.get("title", "")
+                            clean_title = re.sub(r'^File:\s*', '', raw_title, flags=re.IGNORECASE)
+                            clean_title = re.sub(r'\.(jpg|jpeg|png|webp|gif)$', '', clean_title, flags=re.IGNORECASE).strip()
 
-                        if not self._is_relevant_image(clean_title, query, img_url):
-                            continue
+                            if not self._is_relevant_image(clean_title, query, img_url):
+                                continue
 
-                        seen_urls.add(img_url)
-                        images.append({
-                            "url": img_url,
-                            "title": clean_title[:80] or term.title(),
-                            "source": "Wikimedia Commons"
-                        })
-                        if len(images) >= limit:
-                            break
-            except Exception as e:
-                pass
+                            seen_urls.add(img_url)
+                            images.append({
+                                "url": img_url,
+                                "title": clean_title[:80] or term.title(),
+                                "source": "Wikimedia Commons"
+                            })
+                            if len(images) >= limit:
+                                break
+                except Exception:
+                    pass
 
         return images
 

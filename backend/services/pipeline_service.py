@@ -58,6 +58,17 @@ class PipelineService:
 
         print("[PipelineService] Pipeline initialized successfully.")
 
+    def generate_topic_title(self, prompt: str) -> str:
+        clean = re.sub(
+            r'^(please\s+)?(tell\s+me\s+about|what\s+is|who\s+is|give\s+me|explain|write\s+a\s+python\s+program\s+to|write\s+a\s+c\s+program\s+to|write\s+a\s+program\s+to|write\s+a|create\s+a|generate\s+code\s+for\s+a|generate\s+code\s+for|how\s+to)\s+',
+            '', prompt.strip(), flags=re.IGNORECASE
+        ).strip().rstrip("?.!")
+        if not clean:
+            clean = prompt.strip()
+        words = clean.split()[:5]
+        title = " ".join([w.capitalize() for w in words])
+        return title[:28] or "New Chat"
+
     def run_pipeline(self, prompt: str, requested_format: str = "auto") -> Dict[str, Any]:
         start_time = time.time()
         prompt = prompt.strip()
@@ -65,6 +76,7 @@ class PipelineService:
             return {"error": "Empty prompt provided", "success": False}
 
         execution_log = []
+        topic_title = self.generate_topic_title(prompt)
 
         # 0. CHECK CODING REQUEST (Multi-language code generator)
         if self.code_service.is_coding_request(prompt):
@@ -75,6 +87,7 @@ class PipelineService:
                 return {
                     "success": True,
                     "prompt": prompt,
+                    "topic_title": topic_title,
                     "format_applied": "code",
                     "generated_text": code_res["text"],
                     "summary": code_res.get("summary", ""),
@@ -94,6 +107,7 @@ class PipelineService:
             return {
                 "success": True,
                 "prompt": prompt,
+                "topic_title": topic_title,
                 "format_applied": "direct",
                 "generated_text": direct_match["text"],
                 "summary": "",
