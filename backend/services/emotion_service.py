@@ -1,15 +1,17 @@
+import os
 import re
 import json
+import random
+from pathlib import Path
 import requests
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 
 class EmotionService:
     """
     Emotion Detection Engine for MIRA.
-    Integrates with the external Emotion Detection API:
+    Integrates with static data/emotion.json knowledge base and the external
+    Emotion Detection API:
     https://emotion-detection-browser-extention.vercel.app/analyze
-    with a built-in neural emotion fallback to handle affective queries,
-    interjections, and emotional states like 'oh my god', 'i feel sad', 'wow'.
     """
     def __init__(self, api_url: str = "https://emotion-detection-browser-extention.vercel.app/analyze", timeout: float = 2.5):
         self.api_url = api_url
@@ -20,46 +22,67 @@ class EmotionService:
             "User-Agent": "MIRA-Assistant/1.0"
         })
 
-        # Emotional interjections and keywords patterns
-        self.surprise_patterns = [
-            r"\b(oh\s+my\s+god|omg|holy\s+shit|holy\s+crap|holy\s+cow|jesus\s+christ|no\s+way|whoa|woah|wow|unbelievable|are\s+you\s+kidding|for\s+real)\b"
+        self.project_root = Path(__file__).resolve().parent.parent.parent
+        self.static_data: Dict[str, Any] = self._load_static_emotions()
+
+    def _load_static_emotions(self) -> Dict[str, Any]:
+        """Loads static emotion definitions and responses from data/emotion.json."""
+        search_paths = [
+            self.project_root / "data" / "emotion.json",
+            self.project_root / "backend" / "data" / "emotion.json",
+            self.project_root / "src" / "data" / "emotion.json"
         ]
-        self.sadness_patterns = [
-            r"\b(sad|depressed|unhappy|crying|heartbroken|hopeless|lonely|down|hurting|grief|miserable|feeling\s+bad)\b"
-        ]
-        self.joy_patterns = [
-            r"\b(happy|excited|thrilled|yay|awesome|great\s+news|delighted|overjoyed|wonderful|ecstatic|celebrating)\b"
-        ]
-        self.anger_patterns = [
-            r"\b(angry|furious|pissed|mad|annoyed|frustrated|irritated|hate\s+this|hate\s+it|rage)\b"
-        ]
-        self.fear_patterns = [
-            r"\b(scared|afraid|terrified|anxious|nervous|freaking\s+out|panic|worried|fear)\b"
-        ]
-        self.gratitude_patterns = [
-            r"\b(thank\s+you|thanks|appreciate\s+it|grateful|love\s+you)\b"
-        ]
+
+        for p in search_paths:
+            if p.exists():
+                try:
+                    with open(p, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if "emotions" in data:
+                            return data["emotions"]
+                except Exception as e:
+                    print(f"[EmotionService] Warning: Could not read {p}: {e}")
+
+        # Fallback default configuration if files are inaccessible
+        return {}
 
     def _match_local_emotion(self, text: str) -> Optional[str]:
         t = text.lower().strip()
-        for pat in self.surprise_patterns:
-            if re.search(pat, t):
-                return "surprise"
-        for pat in self.sadness_patterns:
-            if re.search(pat, t):
-                return "sadness"
-        for pat in self.joy_patterns:
-            if re.search(pat, t):
-                return "joy"
-        for pat in self.anger_patterns:
-            if re.search(pat, t):
-                return "anger"
-        for pat in self.fear_patterns:
-            if re.search(pat, t):
-                return "fear"
-        for pat in self.gratitude_patterns:
-            if re.search(pat, t):
-                return "love"
+
+        # 1. Check loaded static emotion.json
+        if self.static_data:
+            for emo_name, emo_info in self.static_data.items():
+                # Check direct trigger phrases
+                triggers = emo_info.get("triggers", [])
+                for trig in triggers:
+                    if re.search(rf"\b{re.escape(trig)}\b", t):
+                        return emo_name
+
+                # Check regex patterns
+                patterns = emo_info.get("patterns", [])
+                for pat in patterns:
+                    try:
+                        if re.search(pat, t, re.IGNORECASE):
+                            return emo_name
+                    except Exception:
+                        pass
+
+        # 2. Hardcoded baseline fallback
+        if re.search(r"\b(oh\s+my\s+god|omg|holy\s+(cow|crap|shit)|whoa|woah|wow|no\s+way|unbelievable)\b", t):
+            return "surprise"
+        if re.search(r"\b(sad|depressed|unhappy|crying|heartbroken|hopeless|lonely|down|hurting|grief)\b", t):
+            return "sadness"
+        if re.search(r"\b(happy|excited|thrilled|yay|awesome|great\s+news|delighted|overjoyed)\b", t):
+            return "joy"
+        if re.search(r"\b(angry|furious|pissed|mad|annoyed|frustrated|irritated|hate\s+this)\b", t):
+            return "anger"
+        if re.search(r"\b(scared|afraid|terrified|anxious|nervous|freaking\s+out|panic|worried)\b", t):
+            return "fear"
+        if re.search(r"\b(thank\s+you|thanks|appreciate\s+it|grateful|love\s+you)\b", t):
+            return "love"
+        if re.search(r"\b(confused|lost|don't\s+understand|makes?\s+no\s+sense)\b", t):
+            return "confusion"
+
         return None
 
     def analyze_emotion(self, text: str) -> Tuple[Optional[str], float]:
@@ -121,6 +144,15 @@ class EmotionService:
         """Generates an empathetic, human response tailored to the detected emotion."""
         t = text.lower().strip()
 
+        # 1. Use static emotion.json responses if available
+        if self.static_data and emotion in self.static_data:
+            responses = self.static_data[emotion].get("responses", [])
+            if responses:
+                if emotion == "surprise" and any(term in t for term in ["oh my god", "omg", "holy"]):
+                    return responses[0]
+                return random.choice(responses)
+
+        # 2. Hardcoded fallback responses
         if emotion == "surprise":
             if any(term in t for term in ["oh my god", "omg", "holy", "no way"]):
                 return (
@@ -159,6 +191,11 @@ class EmotionService:
         if emotion == "love":
             return (
                 "Thank you so much! That means the world to me. I'm always right here whenever you need me."
+            )
+
+        if emotion == "confusion":
+            return (
+                "No worries at all! Let's slow down and break it down step-by-step. What part feels confusing?"
             )
 
         return "I'm listening. Tell me more about what's on your mind!"

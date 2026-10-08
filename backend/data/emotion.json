@@ -1,0 +1,175 @@
+{
+  "emotions": {
+    "surprise": {
+      "triggers": [
+        "oh my god",
+        "omg",
+        "holy cow",
+        "holy crap",
+        "holy shit",
+        "whoa",
+        "woah",
+        "wow",
+        "no way",
+        "unbelievable",
+        "are you serious",
+        "are you kidding",
+        "i cannot believe it",
+        "i can't believe it",
+        "what the heck",
+        "for real",
+        "mind blown"
+      ],
+      "patterns": [
+        "\\b(oh\\s+my\\s+god|omg|holy\\s+(cow|crap|shit)|whoa|woah|wow|no\\s+way|unbelievable|are\\s+you\\s+(serious|kidding))\\b"
+      ],
+      "responses": [
+        "Whoa, what happened? Did something crazy or unexpected just take place? I'm all ears—tell me what's going on!",
+        "That sounds like quite a surprise! What just happened? Share the story with me!",
+        "Whoa! Sounds like something huge just went down. What's the scoop?",
+        "That caught you off guard! Take a moment—what brought this on? I'd love to hear more."
+      ]
+    },
+    "sadness": {
+      "triggers": [
+        "i feel sad",
+        "i am sad",
+        "feeling down",
+        "feeling sad",
+        "i am depressed",
+        "i feel depressed",
+        "heartbroken",
+        "feeling lonely",
+        "i am crying",
+        "rough day",
+        "bad day",
+        "feeling miserable",
+        "hopeless",
+        "hurting inside",
+        "i feel awful",
+        "i feel low",
+        "having a hard time"
+      ],
+      "patterns": [
+        "\\b(i('m|\\s+am)?\\s+(so\\s+|really\\s+|very\\s+)?(sad|depressed|heartbroken|lonely|miserable|down|low|crying)|rough\\s+day|bad\\s+day)\\b"
+      ],
+      "responses": [
+        "I'm really sorry you're feeling down. It's completely okay to take a moment and feel whatever you're feeling. Do you want to talk or vent about what's on your mind? I'm right here with you.",
+        "Sending you warm thoughts. Difficult days can feel really heavy. Take a deep breath—I'm here to listen whenever you're ready.",
+        "I hear you, and it's tough going through moments like this. Remember to be gentle with yourself today. I'm always here if you want someone to talk to."
+      ]
+    },
+    "joy": {
+      "triggers": [
+        "i am so happy",
+        "i feel happy",
+        "i am excited",
+        "feeling great",
+        "great news",
+        "awesome news",
+        "i got the job",
+        "celebrating",
+        "yay",
+        "thrilled",
+        "overjoyed",
+        "best day ever",
+        "wonderful day",
+        "i did it"
+      ],
+      "patterns": [
+        "\\b(i('m|\\s+am)?\\s+(so\\s+|really\\s+|very\\s+)?(happy|excited|thrilled|overjoyed)|great\\s+news|awesome\\s+news|celebrating|yay)\\b"
+      ],
+      "responses": [
+        "That is awesome! I love hearing positive news like that. What's the good news? Tell me more!",
+        "That's fantastic! Your excitement is contagious. What made today so great?",
+        "Hooray! Congratulations! Enjoy this win—what are the details?"
+      ]
+    },
+    "anger": {
+      "triggers": [
+        "i am so angry",
+        "i feel angry",
+        "pissed off",
+        "so furious",
+        "hate this",
+        "hate it",
+        "so frustrated",
+        "annoyed",
+        "irritated",
+        "driving me crazy",
+        "i can't stand this",
+        "i cannot stand this"
+      ],
+      "patterns": [
+        "\\b(i('m|\\s+am)?\\s+(so\\s+|really\\s+|very\\s+)?(angry|furious|pissed|mad|frustrated|annoyed)|hate\\s+this|hate\\s+it|driving\\s+me\\s+crazy)\\b"
+      ],
+      "responses": [
+        "That sounds super frustrating. Take a breath—what went wrong? Vent to me or let me know how I can help you solve it.",
+        "It's completely valid to feel upset when things go sideways. Want to talk through what happened?",
+        "I hear your frustration. Take a minute to breathe. Tell me what happened and let's see how we can tackle it together."
+      ]
+    },
+    "fear": {
+      "triggers": [
+        "i am scared",
+        "i feel scared",
+        "terrified",
+        "feeling anxious",
+        "panic attack",
+        "nervous",
+        "worried sick",
+        "freaking out",
+        "afraid",
+        "i am panicking"
+      ],
+      "patterns": [
+        "\\b(i('m|\\s+am)?\\s+(so\\s+|really\\s+|very\\s+)?(scared|terrified|anxious|nervous|afraid)|panic\\s+attack|freaking\\s+out|worried\\s+sick)\\b"
+      ],
+      "responses": [
+        "Hey, take a gentle breath. You're safe right now. What's causing you to feel anxious or scared? Let's break it down together.",
+        "Inhale slowly, and exhale. Whatever you're facing, you don't have to carry it all at once. What's on your mind?",
+        "Anxiety can feel overwhelming, but you're not alone. Take things one second at a time. I'm right here with you."
+      ]
+    },
+    "love": {
+      "triggers": [
+        "i love you",
+        "love you mira",
+        "you are the best",
+        "thank you so much",
+        "thanks a lot",
+        "appreciate you",
+        "grateful for you",
+        "you are awesome",
+        "you're the best"
+      ],
+      "patterns": [
+        "\\b(i\\s+love\\s+you|thank\\s+you\\s+(so\\s+much|a\\s+lot)?|appreciate\\s+you|you('re|\\s+are)\\s+the\\s+best)\\b"
+      ],
+      "responses": [
+        "Thank you so much! That means the world to me. I'm always right here whenever you need me.",
+        "You're very welcome! I'm genuinely happy to help. How else can I support you today?",
+        "Thank you for the kind words, I really appreciate you too! Let me know what you'd like to do next."
+      ]
+    },
+    "confusion": {
+      "triggers": [
+        "i am confused",
+        "i don't understand",
+        "what does this mean",
+        "i am lost",
+        "makes no sense",
+        "make no sense",
+        "can't understand"
+      ],
+      "patterns": [
+        "\\b(i('m|\\s+am)?\\s+(so\\s+)?(confused|lost)|i\\s+don't\\s+understand|makes?\\s+no\\s+sense)\\b"
+      ],
+      "responses": [
+        "No worries at all! Let's slow down and break it down step-by-step. What part feels confusing?",
+        "It's totally okay to feel stuck or lost. Let me know which concept or part you'd like me to clarify!",
+        "Let's untangle it together. Which question or topic can I explain in simpler terms?"
+      ]
+    }
+  }
+}

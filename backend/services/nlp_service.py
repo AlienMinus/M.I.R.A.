@@ -179,6 +179,9 @@ class NLPService:
             if self.is_story_hallucination(s, query):
                 continue
 
+            if self.is_promotional_or_boilerplate(s):
+                continue
+
             lower_s = s.lower().rstrip(".").strip()
             if lower_s.endswith(("and", "or", "because", "with", "which", "that", "the", "a", "an")):
                 continue
@@ -195,6 +198,137 @@ class NLPService:
                 cleaned.append(s)
 
         return cleaned
+
+    def is_promotional_or_boilerplate(self, sentence: str) -> bool:
+        """Filters commercial marketing copy, admissions blurbs, and website footer clutter."""
+        s = sentence.lower()
+        patterns = [
+            r"\b(welcome to|enroll now|admissions open|leading education network)\b",
+            r"\b(schools?, colleges? and coaching|call us|contact us today|visit our campus)\b",
+            r"\b(all rights reserved|terms of service|privacy policy|cookie settings)\b",
+            r"\b(subscribe now|subscribe to our|follow us on|sign up for free)\b",
+            r"\b(click here to|read more at|buy now|add to cart|check out our)\b"
+        ]
+        return any(re.search(pat, s) for pat in patterns)
+
+    def extract_salient_keywords(self, text: str, query: str = "") -> List[str]:
+        """
+        Uses NLP POS tagging and regex heuristics to identify high-impact key terms:
+        - Named entities & Proper Nouns (NNP, NNPS), including multi-word entities
+        - Specialized terms enclosed in quotes or parentheses
+        - Significant compound noun concepts (JJ + NN or NN + NN)
+        - Core topic terms matching query
+        """
+        if not text:
+            return []
+
+        candidates = []
+        seen = set()
+
+        # 1. Phrases enclosed in quotes (e.g. 'primeval man', 'Supreme Being')
+        for q in re.findall(r"['\"]([A-Za-z0-9\s\-_]{3,40})['\"]", text):
+            q_clean = q.strip()
+            if q_clean.lower() not in self.stop_words and q_clean.lower() not in seen and len(q_clean.split()) <= 4:
+                candidates.append(q_clean)
+                seen.add(q_clean.lower())
+
+        # 2. Query words/phrases if present in text
+        if query:
+            clean_q = re.sub(r'[^\w\s]', '', query).strip()
+            if len(clean_q) > 2 and clean_q.lower() not in self.stop_words:
+                for m in re.finditer(rf"\b{re.escape(clean_q)}\b", text, re.IGNORECASE):
+                    val = m.group(0)
+                    if val.lower() not in seen:
+                        candidates.append(val)
+                        seen.add(val.lower())
+
+        # 3. NLTK POS Tagging for Proper Nouns & Compound Terms
+        try:
+            tokens = word_tokenize(text)
+            tagged = pos_tag(tokens)
+
+            # Extract multi-word or single-word Proper Nouns (NNP, NNPS)
+            current_entity = []
+            banned_words = {
+                "the", "this", "that", "these", "those", "he", "she", "it", "they",
+                "in", "on", "at", "to", "for", "with", "by", "from", "and", "or",
+                "is", "was", "are", "were", "also", "however", "therefore", "moreover",
+                "according", "welcome", "states", "stated", "says", "said"
+            }
+
+            for word, tag in tagged:
+                clean_word = word.strip(" ,.:;?!'\"")
+                if tag in ("NNP", "NNPS") and clean_word.lower() not in banned_words and len(clean_word) > 1:
+                    current_entity.append(clean_word)
+                else:
+                    if current_entity:
+                        ent = " ".join(current_entity)
+                        if ent.lower() not in seen and len(ent) > 2 and ent.lower() not in self.stop_words:
+                            candidates.append(ent)
+                            seen.add(ent.lower())
+                        current_entity = []
+
+            if current_entity:
+                ent = " ".join(current_entity)
+                if ent.lower() not in seen and len(ent) > 2 and ent.lower() not in self.stop_words:
+                    candidates.append(ent)
+                    seen.add(ent.lower())
+
+            # Extract Compound Noun Concepts (JJ + NN or NN + NN)
+            for i in range(len(tagged) - 1):
+                w1, t1 = tagged[i]
+                w2, t2 = tagged[i+1]
+                cw1 = w1.strip(" ,.:;?!'\"")
+                cw2 = w2.strip(" ,.:;?!'\"")
+                if cw1.lower() in banned_words or cw2.lower() in banned_words:
+                    continue
+                if (t1.startswith("JJ") and t2.startswith("NN")) or (t1.startswith("NN") and t2.startswith("NN")):
+                    pair = f"{cw1} {cw2}"
+                    if pair.lower() not in seen and len(pair) > 5 and pair.lower() not in self.stop_words:
+                        if cw1[0].isupper() or cw2[0].isupper() or any(k in pair.lower() for k in ["being", "pantheon", "chakra", "gada", "shankha", "system", "law", "origin", "model", "network", "theory", "concept", "principle"]):
+                            candidates.append(pair)
+                            seen.add(pair.lower())
+
+        except Exception:
+            caps = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', text)
+            for c in caps:
+                if c.lower() not in seen and len(c) > 3 and c.lower() not in self.stop_words:
+                    candidates.append(c)
+                    seen.add(c.lower())
+
+        # Sort candidates descending by length so longer phrases are highlighted first
+        candidates.sort(key=lambda x: len(x), reverse=True)
+        return candidates
+
+    def apply_markdown_highlighting(self, text: str, keywords: List[str], max_highlights: int = 5) -> str:
+        """
+        Applies markdown bold syntax (**keyword**) to up to max_highlights keywords.
+        Guarantees existing markdown links, code blocks, or bold tags are preserved safely.
+        """
+        if not text or not keywords:
+            return text
+
+        result = text
+        highlighted = 0
+        used = set()
+
+        for kw in keywords:
+            if highlighted >= max_highlights:
+                break
+
+            kw_clean = kw.strip()
+            if not kw_clean or len(kw_clean) < 3 or kw_clean.lower() in used:
+                continue
+
+            # Word boundary regex preserving original case, avoiding already bolded text
+            pattern = rf"(?<![\*\w\[])({re.escape(kw_clean)})(?![\*\w\]])"
+
+            if re.search(pattern, result):
+                result = re.sub(pattern, r"**\1**", result, count=1)
+                used.add(kw_clean.lower())
+                highlighted += 1
+
+        return result
 
     def detect_format_intent(self, prompt: str, user_override: str = None) -> str:
         if user_override and user_override in ["structured_notes", "paragraphed"]:
