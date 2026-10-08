@@ -1,5 +1,16 @@
 import sys
+import io
 from pathlib import Path
+
+# Force UTF-8 on Windows stdout/stderr to prevent cp1252 charmap encoding crashes
+if sys.platform.startswith('win'):
+    try:
+        if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
 
 current_dir = Path(__file__).resolve().parent
 if str(current_dir) not in sys.path:
