@@ -135,7 +135,7 @@ export default function ResumeDocument({
                   {exp.role}
                   {exp.link && (
                     <a
-                      className="public-view-link no-print"
+                      className="public-view-link"
                       href={exp.link}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -169,7 +169,7 @@ export default function ResumeDocument({
                   <strong>{proj.title}</strong>
                   {proj.link && (
                     <a
-                      className="public-view-link no-print"
+                      className="public-view-link"
                       href={proj.link}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -227,7 +227,7 @@ export default function ResumeDocument({
                 <strong>{cert.name}</strong>
                 {cert.link && (
                   <a
-                    className="public-view-link no-print"
+                    className="public-view-link"
                     href={cert.link}
                     target="_blank"
                     rel="noopener noreferrer"

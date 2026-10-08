@@ -178,17 +178,41 @@ export async function buildPdfBlob(source, opts) {
           .filter(Boolean)
       : [];
 
-  // Collect candidate break positions from DOM elements
+  // Collect candidate break positions from DOM elements (entire entries and list items kept together)
   const rawBreaks = [];
   clone
     .querySelectorAll(
-      "#header-section, #summary-section, #education-section > div, #skills-section, .skills-grid, .experience-item, #projects-section > div, #certifications-section li, #achievements-section li, .custom-resume-section > div, .custom-resume-section"
+      "#header-section, #summary-section, #skills-section, .skills-grid, .skills-grid > div, .skill-line, " +
+      "#experience-section, .experience-item, .experience-item li, " +
+      "#projects-section, .project-item, .project-item li, " +
+      "#education-section, .education-item, " +
+      "#certifications-section, #certifications-section li, " +
+      "#achievements-section, #achievements-section li, " +
+      ".custom-resume-section, .custom-resume-section > div, .custom-resume-section li"
     )
     .forEach((el) => {
       const r = el.getBoundingClientRect();
       const bottomY = Math.round((r.bottom - rect.top) * renderScale);
       if (bottomY > 8 && bottomY < trimmedCanvas.height - 8) rawBreaks.push(bottomY);
     });
+
+  // Section titles: offer clean breaks right BEFORE a new section begins
+  clone.querySelectorAll("section h2").forEach((h2) => {
+    const r = h2.getBoundingClientRect();
+    const topY = Math.round((r.top - rect.top) * renderScale);
+    if (topY > 20 && topY < trimmedCanvas.height - 20) {
+      rawBreaks.push(topY - 8);
+    }
+  });
+
+  // Record heading bounds to prevent orphan headings at the bottom of a page
+  const orphanRanges = [];
+  clone.querySelectorAll("section h2").forEach((h2) => {
+    const r = h2.getBoundingClientRect();
+    const h2Top = Math.round((r.top - rect.top) * renderScale);
+    const h2Bottom = Math.round((r.bottom - rect.top) * renderScale);
+    orphanRanges.push({ start: h2Top - 2, end: h2Bottom + Math.round(28 * renderScale) });
+  });
 
   cloneHost.remove();
 
@@ -224,7 +248,11 @@ export async function buildPdfBlob(source, opts) {
     return true;
   }
 
-  function findWhitespaceGapAfter(startY, maxScan = 40, minBand = 2) {
+  function isOrphanBreak(y) {
+    return orphanRanges.some((rng) => y >= rng.start && y <= rng.end);
+  }
+
+  function findWhitespaceGapAfter(startY, maxScan = 50, minBand = 3) {
     const clampedStart = Math.max(0, Math.min(contentHeight - 1, startY));
     let consecutiveWhite = 0;
     let bandStart = -1;
@@ -234,7 +262,8 @@ export async function buildPdfBlob(source, opts) {
         consecutiveWhite++;
         if (bandStart < 0) bandStart = y;
         if (consecutiveWhite >= minBand) {
-          return Math.round((bandStart + y) / 2);
+          const mid = Math.round((bandStart + y) / 2);
+          if (!isOrphanBreak(mid)) return mid;
         }
       } else {
         consecutiveWhite = 0;
@@ -244,21 +273,22 @@ export async function buildPdfBlob(source, opts) {
     return null;
   }
 
-  function findWhitespaceGapBefore(startY, maxScan = 240, minBand = 2) {
+  function findWhitespaceGapBefore(startY, maxScan = 350, minBand = 4) {
     const clampedStart = Math.max(0, Math.min(contentHeight - 1, startY));
     let consecutiveWhite = 0;
-    let bandStart = -1;
+    let bandEnd = -1;
 
     for (let y = clampedStart; y >= Math.max(0, clampedStart - maxScan); y--) {
       if (isWhiteRow(y)) {
         consecutiveWhite++;
-        if (bandStart < 0) bandStart = y;
+        if (bandEnd < 0) bandEnd = y;
         if (consecutiveWhite >= minBand) {
-          return Math.round((bandStart + y) / 2);
+          const mid = Math.round((bandEnd + y) / 2);
+          if (!isOrphanBreak(mid)) return mid;
         }
       } else {
         consecutiveWhite = 0;
-        bandStart = -1;
+        bandEnd = -1;
       }
     }
     return null;
@@ -266,8 +296,11 @@ export async function buildPdfBlob(source, opts) {
 
   const safeBreaks = [];
   rawBreaks.forEach((rawY) => {
-    const clean = findWhitespaceGapAfter(rawY, 35) || rawY;
-    if (clean && clean > 10 && clean < contentHeight - 10) {
+    const clean =
+      findWhitespaceGapAfter(rawY, 40, 3) ||
+      findWhitespaceGapBefore(rawY, 20, 3) ||
+      rawY;
+    if (clean && clean > 10 && clean < contentHeight - 10 && !isOrphanBreak(clean)) {
       safeBreaks.push(clean);
     }
   });
@@ -301,7 +334,7 @@ export async function buildPdfBlob(source, opts) {
     let cursor = 0;
 
     while (cursor < contentHeight - 1) {
-      if (contentHeight - cursor <= pageCanvasHeight * 1.06) {
+      if (contentHeight - cursor <= pageCanvasHeight) {
         out.push({ sy: cursor, sh: contentHeight - cursor });
         break;
       }
@@ -310,21 +343,36 @@ export async function buildPdfBlob(source, opts) {
       let end = naturalEnd;
 
       if (naturalEnd < contentHeight) {
-        const candidates = safeBreaks.filter((y) => y > cursor + 120 && y <= naturalEnd);
+        const candidates = safeBreaks.filter(
+          (y) => y > cursor + Math.round(60 * renderScale) && y <= naturalEnd && !isOrphanBreak(y)
+        );
         if (candidates.length > 0) {
           end = candidates[candidates.length - 1];
         } else {
-          const cleanBand = findWhitespaceGapBefore(naturalEnd - 2, Math.min(320, pageCanvasHeight - 120));
-          if (cleanBand && cleanBand > cursor + 40) {
+          const cleanBand = findWhitespaceGapBefore(
+            naturalEnd - 2,
+            Math.min(380, pageCanvasHeight - Math.round(60 * renderScale)),
+            4
+          );
+          if (cleanBand && cleanBand > cursor + Math.round(50 * renderScale)) {
             end = cleanBand;
           }
         }
       }
 
-      const verifiedEnd = findWhitespaceGapAfter(end, 20) || findWhitespaceGapBefore(end, 20) || end;
-      if (verifiedEnd <= cursor) break;
-      end = verifiedEnd;
+      const verifiedEnd =
+        findWhitespaceGapAfter(end, 30, 3) ||
+        findWhitespaceGapBefore(end, 30, 3) ||
+        end;
 
+      if (verifiedEnd <= cursor) {
+        const fallbackEnd = Math.min(cursor + pageCanvasHeight, contentHeight);
+        out.push({ sy: cursor, sh: fallbackEnd - cursor });
+        cursor = fallbackEnd;
+        continue;
+      }
+
+      end = verifiedEnd;
       const sh = end - cursor;
       if (sh <= 0) break;
       out.push({ sy: cursor, sh });
@@ -356,21 +404,30 @@ export async function buildPdfBlob(source, opts) {
 
     for (const breakY of forced) {
       while (breakY - cursor > pageCanvasHeight) {
-        if (breakY - cursor <= pageCanvasHeight * 1.06) {
+        if (breakY - cursor <= pageCanvasHeight) {
           out.push({ sy: cursor, sh: breakY - cursor });
           cursor = breakY;
           break;
         }
         const naturalEnd = Math.min(cursor + pageCanvasHeight, breakY);
         let end = naturalEnd;
-        const candidates = safeBreaks.filter((y) => y > cursor + 120 && y <= naturalEnd);
+        const candidates = safeBreaks.filter(
+          (y) => y > cursor + Math.round(60 * renderScale) && y <= naturalEnd && !isOrphanBreak(y)
+        );
         if (candidates.length > 0) {
           end = candidates[candidates.length - 1];
         } else {
-          const cleanBand = findWhitespaceGapBefore(naturalEnd - 2, Math.min(320, pageCanvasHeight - 120));
-          if (cleanBand && cleanBand > cursor + 40) end = cleanBand;
+          const cleanBand = findWhitespaceGapBefore(
+            naturalEnd - 2,
+            Math.min(380, pageCanvasHeight - Math.round(60 * renderScale)),
+            4
+          );
+          if (cleanBand && cleanBand > cursor + Math.round(50 * renderScale)) end = cleanBand;
         }
-        const cleanCut = findWhitespaceGapAfter(end, 20) || findWhitespaceGapBefore(end, 20) || end;
+        const cleanCut =
+          findWhitespaceGapAfter(end, 25, 3) ||
+          findWhitespaceGapBefore(end, 25, 3) ||
+          end;
         if (cleanCut <= cursor) break;
         out.push({ sy: cursor, sh: cleanCut - cursor });
         cursor = cleanCut;
@@ -383,22 +440,31 @@ export async function buildPdfBlob(source, opts) {
     }
 
     while (cursor < contentHeight - 1) {
-      if (contentHeight - cursor <= pageCanvasHeight * 1.06) {
+      if (contentHeight - cursor <= pageCanvasHeight) {
         out.push({ sy: cursor, sh: contentHeight - cursor });
         break;
       }
       const naturalEnd = Math.min(cursor + pageCanvasHeight, contentHeight);
       let end = naturalEnd;
       if (naturalEnd < contentHeight) {
-        const candidates = safeBreaks.filter((y) => y > cursor + 120 && y <= naturalEnd);
+        const candidates = safeBreaks.filter(
+          (y) => y > cursor + Math.round(60 * renderScale) && y <= naturalEnd && !isOrphanBreak(y)
+        );
         if (candidates.length > 0) {
           end = candidates[candidates.length - 1];
         } else {
-          const cleanBand = findWhitespaceGapBefore(naturalEnd - 2, Math.min(320, pageCanvasHeight - 120));
-          if (cleanBand && cleanBand > cursor + 40) end = cleanBand;
+          const cleanBand = findWhitespaceGapBefore(
+            naturalEnd - 2,
+            Math.min(380, pageCanvasHeight - Math.round(60 * renderScale)),
+            4
+          );
+          if (cleanBand && cleanBand > cursor + Math.round(50 * renderScale)) end = cleanBand;
         }
       }
-      const cleanCut = findWhitespaceGapAfter(end, 20) || findWhitespaceGapBefore(end, 20) || end;
+      const cleanCut =
+        findWhitespaceGapAfter(end, 25, 3) ||
+        findWhitespaceGapBefore(end, 25, 3) ||
+        end;
       if (cleanCut <= cursor) break;
       out.push({ sy: cursor, sh: cleanCut - cursor });
       cursor = cleanCut;
@@ -444,6 +510,8 @@ export async function buildPdfBlob(source, opts) {
     sliceCanvas.width = contentCanvas.width;
     sliceCanvas.height = Math.max(1, slice.sh);
     const sliceCtx = sliceCanvas.getContext("2d");
+    sliceCtx.imageSmoothingEnabled = true;
+    sliceCtx.imageSmoothingQuality = "high";
     sliceCtx.fillStyle = "#ffffff";
     sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
     sliceCtx.drawImage(
@@ -461,8 +529,8 @@ export async function buildPdfBlob(source, opts) {
     const pageImgH = Math.min(availableH, (slice.sh / renderScale) * contentPxToMm);
 
     pdf.addImage(
-      sliceCanvas.toDataURL("image/jpeg", 0.98),
-      "JPEG",
+      sliceCanvas.toDataURL("image/png"),
+      "PNG",
       xPos,
       top,
       finalW,

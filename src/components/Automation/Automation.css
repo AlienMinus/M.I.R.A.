@@ -1716,9 +1716,7 @@
   .apps-mobile-menu-btn,
   .modal-overlay,
   .delete-modal-overlay,
-  .resumanager-toast,
-  header .public-view-link,
-  .public-view-link {
+  .resumanager-toast {
     display: none !important;
   }
 
