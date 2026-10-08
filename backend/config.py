@@ -5,6 +5,27 @@ import torch
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
 
+# Load environment variables from backend/.env or root .env
+try:
+    from dotenv import load_dotenv
+    if (BASE_DIR / '.env').exists():
+        load_dotenv(dotenv_path=BASE_DIR / '.env')
+    if (PROJECT_ROOT / '.env').exists():
+        load_dotenv(dotenv_path=PROJECT_ROOT / '.env')
+except ImportError:
+    pass
+
+HF_TOKEN = os.getenv('HF_TOKEN') or os.getenv('HUGGING_FACE_HUB_TOKEN')
+if HF_TOKEN:
+    os.environ['HF_TOKEN'] = HF_TOKEN
+    os.environ['HUGGING_FACE_HUB_TOKEN'] = HF_TOKEN
+    os.environ['HUGGINGFACE_HUB_TOKEN'] = HF_TOKEN
+    try:
+        from huggingface_hub import login
+        login(token=HF_TOKEN, add_to_git_credential=False)
+    except Exception:
+        pass
+
 MODEL_PATH = BASE_DIR / 'ion.pt'
 BLOCKED_KEYWORDS_PATH = PROJECT_ROOT / 'public' / 'blocked.txt'
 

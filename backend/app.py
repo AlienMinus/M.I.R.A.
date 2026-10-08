@@ -18,13 +18,18 @@ if str(current_dir) not in sys.path:
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from config import SERVER_CONFIG, DEVICE
+from config import SERVER_CONFIG, DEVICE, HF_TOKEN
 from services.pipeline_service import PipelineService
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
 
 print(f'[Backend] Starting MIRA AI Backend on device: {DEVICE}...')
+if HF_TOKEN:
+    print(f'[Backend] Hugging Face Hub Token active: {HF_TOKEN[:7]}...{HF_TOKEN[-4:]}')
+else:
+    print('[Backend] Notice: No HF_TOKEN detected in .env')
+
 pipeline = PipelineService(device=DEVICE)
 print('[Backend] Pipeline ready to serve requests.')
 
@@ -39,6 +44,7 @@ def health_check():
         'status': 'healthy',
         'device': DEVICE,
         'server': 'waitress',
+        'hf_token_configured': bool(HF_TOKEN),
         'services': {
             'web_search': True,
             'web_scraper': True,

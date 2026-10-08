@@ -64,7 +64,7 @@ export default function AutomationPage() {
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", backgroundColor: "#09090b" }}>
         <div className="custom-scrollbar" style={{ height: "100%", overflowY: "auto", padding: "20px" }}>
-          <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          <div style={{ maxWidth: "1550px", margin: "0 auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button 
