@@ -169,7 +169,14 @@ class PipelineService:
             clean_title = re.split(r'[-–—|:]', top_title)[0].strip()
             prompt_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', prompt.lower()))
             clean_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', clean_title.lower()))
-            if (prompt_words & clean_words) and not any(w in clean_title.lower() for w in ["search", "results", "overview", "login", "foundation", "footing", "dimension", "laminate"]):
+            is_valid_topic = False
+            if len(prompt_words) >= 2:
+                # Require all prompt keywords to be present in clean_title to prevent entity drift (e.g. Elon College vs Elon Musk)
+                is_valid_topic = prompt_words.issubset(clean_words)
+            else:
+                is_valid_topic = bool(prompt_words & clean_words)
+
+            if is_valid_topic and not any(w in clean_title.lower() for w in ["search", "results", "overview", "login", "foundation", "footing", "dimension", "laminate", "university", "college"]):
                 canonical_topic = clean_title
 
         topic_images = self.image_service.get_topic_images(

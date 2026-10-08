@@ -63,25 +63,32 @@ class ScraperService:
 
     def scrape_sources(self, search_results: List[Dict[str, str]], max_pages: int = 3) -> List[Dict[str, Any]]:
         scraped_data = []
-        pages_processed = 0
+        target_results = search_results[:max_pages]
+        if not target_results:
+            return []
 
-        for result in search_results:
-            if pages_processed >= max_pages:
-                break
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            url = result.get('link', '')
-            title = result.get('title', '')
-            snippet = result.get('snippet', '')
-
+        def _fetch(res):
+            url = res.get('link', '')
+            title = res.get('title', '')
+            snippet = res.get('snippet', '')
             paragraphs = self.scrape_url(url)
-            pages_processed += 1
-
-            scraped_data.append({
+            return {
                 'title': title,
                 'link': url,
                 'snippet': snippet,
-                'source': result.get('source', 'Web'),
+                'source': res.get('source', 'Web'),
                 'paragraphs': paragraphs[:6]
-            })
+            }
+
+        with ThreadPoolExecutor(max_workers=min(len(target_results), 4)) as executor:
+            future_to_res = {executor.submit(_fetch, res): res for res in target_results}
+            for future in as_completed(future_to_res):
+                try:
+                    data = future.result()
+                    scraped_data.append(data)
+                except Exception as e:
+                    print(f'[ScraperService] Concurrent scrape failed: {e}')
 
         return scraped_data

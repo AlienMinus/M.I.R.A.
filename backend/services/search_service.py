@@ -147,8 +147,12 @@ class SearchService:
             f"&generator=search&gsrsearch={quote(query)}&gsrlimit={max_results}"
             f"&prop=extracts&exintro=1&explaintext=1"
         )
+        wiki_headers = {
+            "User-Agent": "MIRA-Intelligence-Search/2.0 (mira-dev@lexcodex.local; academic bot)",
+            "Accept": "application/json"
+        }
         try:
-            resp = self.session.get(extract_url, timeout=(3.0, 5.0))
+            resp = self.session.get(extract_url, headers=wiki_headers, timeout=(2.0, 3.0))
             if resp.status_code == 200:
                 pages = resp.json().get("query", {}).get("pages", {})
                 for pid, p in pages.items():
@@ -171,7 +175,7 @@ class SearchService:
         if len(results) < max_results:
             url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={quote(query)}&limit={max_results}&namespace=0&format=json"
             try:
-                resp = self.session.get(url, timeout=(3.0, 4.0))
+                resp = self.session.get(url, headers=wiki_headers, timeout=(2.0, 3.0))
                 if resp.status_code == 200:
                     data = resp.json()
                     if len(data) >= 4:
