@@ -145,7 +145,9 @@ export default function AIResponse({ text, attachments, images = [], summary = "
         {images && images.length > 0 && (
           <div className="topic-visuals-container">
             <div className="topic-visuals-header">
-              <span>🖼️ Verified Topic Visuals</span>
+              <span className="topic-visuals-title">
+                <FiImage className="header-icon" size={15} /> Verified Topic Visuals
+              </span>
               <span className="topic-visuals-badge">{images.length} photos</span>
             </div>
             <div className="topic-visuals-strip">
@@ -175,7 +177,7 @@ export default function AIResponse({ text, attachments, images = [], summary = "
         {summary && summary.trim() && (
           <div className="summary-highlight-card">
             <div className="summary-header">
-              <span>⚡ Executive Summary</span>
+              <FiZap className="header-icon" size={14} /> Executive Summary
             </div>
             <div className="summary-body">{summary}</div>
           </div>
@@ -188,7 +190,9 @@ export default function AIResponse({ text, attachments, images = [], summary = "
         {sources && sources.length > 0 && (
           <div className="verified-sources-container">
             <div className="verified-sources-header">
-              <span>🌐 Verified Sources & References</span>
+              <span className="sources-title">
+                <FiGlobe className="header-icon" size={14} /> Verified Sources & References
+              </span>
             </div>
             <div className="verified-sources-chips">
               {sources.map((src, idx) => (
