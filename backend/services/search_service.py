@@ -92,7 +92,7 @@ class SearchService:
         url = f"https://www.bing.com/search?q={quote(query)}"
         results = []
         try:
-            resp = self.session.get(url, timeout=5)
+            resp = self.session.get(url, timeout=(2.0, 3.0))
             if resp.status_code == 200:
                 soup = BeautifulSoup(resp.text, "html.parser")
                 items = soup.select("li.b_algo")
@@ -125,7 +125,7 @@ class SearchService:
         url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={quote(query)}&limit={max_results}&namespace=0&format=json"
         results = []
         try:
-            resp = self.session.get(url, timeout=5)
+            resp = self.session.get(url, timeout=(2.0, 3.0))
             if resp.status_code == 200:
                 data = resp.json()
                 if len(data) >= 4:
@@ -146,7 +146,7 @@ class SearchService:
         url = f"https://api.duckduckgo.com/?q={quote(query)}&format=json"
         results = []
         try:
-            resp = self.session.get(url, timeout=5)
+            resp = self.session.get(url, timeout=(2.0, 3.0))
             data = resp.json()
             abstract = data.get("AbstractText", "")
             abstract_url = data.get("AbstractURL", "")
