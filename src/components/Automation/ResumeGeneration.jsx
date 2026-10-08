@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { FiCheck } from "react-icons/fi";
+import { FiCheck, FiZoomIn, FiZoomOut } from "react-icons/fi";
 import { DEFAULT_PROFILES } from "./defaultProfiles";
 import Toolbar from "./Toolbar";
 import ProfilesStrip from "./ProfilesStrip";
@@ -32,8 +32,16 @@ export default function ResumeGeneration() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
+  // A4 Preview Dynamic Scaling State
+  const [zoomMode, setZoomMode] = useState("auto"); // "auto" | "fit-width" | "custom"
+  const [customScale, setCustomScale] = useState(1);
+  const [computedScale, setComputedScale] = useState(0.72);
+  const [docHeight, setDocHeight] = useState(1123);
+
   const photoInputRef = useRef(null);
   const jsonImportRef = useRef(null);
+  const viewerPaneRef = useRef(null);
+  const innerDocRef = useRef(null);
 
   // Current active profile
   const currentProfile =
@@ -47,6 +55,56 @@ export default function ResumeGeneration() {
       console.error("Error saving resume_profiles", e);
     }
   }, [profiles]);
+
+  // Dynamically calculate A4 fit scale whenever viewport, container or active profile changes
+  useEffect(() => {
+    const paneEl = viewerPaneRef.current;
+    if (!paneEl) return;
+
+    const calculateScale = () => {
+      const rect = paneEl.getBoundingClientRect();
+      const availW = Math.max(rect.width - 24, 120);
+      const availH = Math.max(rect.height - 46, 120);
+
+      const renderedHeight = innerDocRef.current?.offsetHeight || 1123;
+      const targetH = Math.max(1123, renderedHeight);
+      setDocHeight(targetH);
+
+      const scaleW = availW / 794;
+      const scaleH = availH / targetH;
+      const autoFit = Math.min(scaleW, scaleH);
+
+      setComputedScale(Math.max(0.25, Math.min(autoFit, 1.3)));
+    };
+
+    calculateScale();
+
+    let ro;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => {
+        calculateScale();
+      });
+      ro.observe(paneEl);
+    } else {
+      window.addEventListener("resize", calculateScale);
+    }
+
+    return () => {
+      if (ro) ro.disconnect();
+      else window.removeEventListener("resize", calculateScale);
+    };
+  }, [activeView, currentProfile]);
+
+  const fitWidthScale = viewerPaneRef.current
+    ? (viewerPaneRef.current.clientWidth - 28) / 794
+    : 0.8;
+
+  const activeScale =
+    zoomMode === "auto"
+      ? computedScale
+      : zoomMode === "fit-width"
+      ? Math.max(0.3, Math.min(fitWidthScale, 1.5))
+      : customScale;
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -310,12 +368,93 @@ export default function ResumeGeneration() {
 
         {/* ATS Resume Viewer Pane */}
         {(activeView === "split" || activeView === "resume") && (
-          <div className="resume-viewer-pane custom-scrollbar">
-            <ResumeDocument
-              profile={currentProfile}
-              onTriggerPhotoUpload={() => photoInputRef.current?.click()}
-              onRemovePhoto={handleRemovePhoto}
-            />
+          <div className="resume-viewer-pane custom-scrollbar" ref={viewerPaneRef}>
+            {/* Dynamic Zoom & A4 Ratio Toolbar */}
+            <div className="resume-zoom-toolbar no-print">
+              <button
+                type="button"
+                className="zoom-toolbar-btn"
+                onClick={() => {
+                  setZoomMode("custom");
+                  setCustomScale(Math.max(0.3, activeScale - 0.1));
+                }}
+                title="Zoom Out"
+              >
+                <FiZoomOut size={12} />
+              </button>
+
+              <button
+                type="button"
+                className={`zoom-toolbar-badge ${zoomMode === "auto" ? "active" : ""}`}
+                onClick={() => setZoomMode("auto")}
+                title="Auto fit A4 page to window"
+              >
+                {zoomMode === "auto"
+                  ? `Auto Fit (${Math.round(computedScale * 100)}%)`
+                  : `${Math.round(activeScale * 100)}%`}
+              </button>
+
+              <button
+                type="button"
+                className="zoom-toolbar-btn"
+                onClick={() => {
+                  setZoomMode("custom");
+                  setCustomScale(Math.min(1.8, activeScale + 0.1));
+                }}
+                title="Zoom In"
+              >
+                <FiZoomIn size={12} />
+              </button>
+
+              <div className="zoom-toolbar-sep" />
+
+              <button
+                type="button"
+                className={`zoom-toolbar-text-btn ${activeScale === 1 && zoomMode === "custom" ? "active" : ""}`}
+                onClick={() => {
+                  setZoomMode("custom");
+                  setCustomScale(1.0);
+                }}
+                title="Actual 100% size"
+              >
+                100%
+              </button>
+
+              <button
+                type="button"
+                className={`zoom-toolbar-text-btn ${zoomMode === "fit-width" ? "active" : ""}`}
+                onClick={() => setZoomMode("fit-width")}
+                title="Fit to page width"
+              >
+                Fit Width
+              </button>
+            </div>
+
+            {/* A4 Scaled Page Container */}
+            <div className="resume-scale-wrapper">
+              <div
+                className="resume-scale-box"
+                style={{
+                  width: `${Math.round(794 * activeScale)}px`,
+                  height: `${Math.round(docHeight * activeScale)}px`
+                }}
+              >
+                <div
+                  ref={innerDocRef}
+                  className="resume-scale-inner"
+                  style={{
+                    transform: `scale(${activeScale})`,
+                    transformOrigin: "top left"
+                  }}
+                >
+                  <ResumeDocument
+                    profile={currentProfile}
+                    onTriggerPhotoUpload={() => photoInputRef.current?.click()}
+                    onRemovePhoto={handleRemovePhoto}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

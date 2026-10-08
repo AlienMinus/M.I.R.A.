@@ -62,40 +62,43 @@ export default function AutomationPage() {
         currentChatId={chatId}
       />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", backgroundColor: "#09090b" }}>
-        <div className="custom-scrollbar" style={{ height: "100%", overflowY: "auto", padding: "20px" }}>
-          <div style={{ maxWidth: "1550px", margin: "0 auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <button 
-                  className="apps-mobile-menu-btn" 
-                  onClick={() => setMobileOpen(true)}
-                  style={{ display: "none" }} // Hidden by default, shown via CSS media query if needed
-                >
-                  <FiMenu />
-                </button>
-                <div>
-                  <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#fff", margin: 0 }}>Resumanager</h1>
-                  <span style={{ fontSize: "0.8rem", color: "#38bdf8", fontWeight: "500" }}>AI Resume Studio & ATS Optimizer</span>
-                </div>
-              </div>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", backgroundColor: "#09090b", height: "100vh" }}>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "8px 14px 6px 14px", overflow: "hidden", boxSizing: "border-box" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button 
-                onClick={() => navigate("/")}
-                style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: "8px", 
-                  background: "transparent", 
-                  border: "none", 
-                  color: "#a1a1aa", 
-                  cursor: "pointer",
-                  fontSize: "0.9rem"
-                }}
+                className="apps-mobile-menu-btn" 
+                onClick={() => setMobileOpen(true)}
+                style={{ display: "none" }} // Hidden by default, shown via CSS media query if needed
               >
-                <FiArrowLeft /> Back to Chat
+                <FiMenu />
               </button>
+              <div>
+                <h1 style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff", margin: 0, lineHeight: 1.2 }}>Resumanager</h1>
+                <span style={{ fontSize: "0.75rem", color: "#38bdf8", fontWeight: "500" }}>AI Resume Studio & ATS Optimizer</span>
+              </div>
             </div>
-            
+            <button 
+              onClick={() => navigate("/")}
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "6px", 
+                background: "rgba(255, 255, 255, 0.05)", 
+                border: "1px solid rgba(255, 255, 255, 0.1)", 
+                borderRadius: "6px",
+                padding: "4px 10px",
+                color: "#cbd5e1", 
+                cursor: "pointer",
+                fontSize: "0.82rem",
+                transition: "all 0.15s ease"
+              }}
+            >
+              <FiArrowLeft /> Back to Chat
+            </button>
+          </div>
+          
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <Automation />
           </div>
         </div>

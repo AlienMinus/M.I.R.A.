@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FiUser,
   FiAlignLeft,
@@ -10,7 +10,9 @@ import {
   FiStar,
   FiLayers,
   FiChevronLeft,
-  FiChevronRight
+  FiChevronRight,
+  FiChevronDown,
+  FiCheck
 } from "react-icons/fi";
 
 import HeaderEditor from "./HeaderEditor";
@@ -43,10 +45,25 @@ export default function ResumeEditor({
   onAiPolishSummary
 }) {
   const [activeSection, setActiveSection] = useState("header");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const currentIndex = SECTIONS.findIndex((s) => s.id === activeSection);
   const prevSection = currentIndex > 0 ? SECTIONS[currentIndex - 1] : null;
   const nextSection = currentIndex < SECTIONS.length - 1 ? SECTIONS[currentIndex + 1] : null;
+
+  const currentSectionObj = SECTIONS[currentIndex] || SECTIONS[0];
+  const CurrentIcon = currentSectionObj.icon;
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const getSectionCount = (id) => {
     switch (id) {
@@ -69,31 +86,105 @@ export default function ResumeEditor({
     }
   };
 
+  const currentCount = getSectionCount(currentSectionObj.id);
+
   return (
     <div className="editor-pane no-print">
-      {/* Button-wise Section Navigation Tabs */}
-      <div className="editor-nav-bar custom-scrollbar">
-        {SECTIONS.map((sec, idx) => {
-          const Icon = sec.icon;
-          const isActive = sec.id === activeSection;
-          const count = getSectionCount(sec.id);
-
-          return (
-            <button
-              key={sec.id}
-              type="button"
-              className={`editor-nav-btn ${isActive ? "active" : ""}`}
-              onClick={() => setActiveSection(sec.id)}
-              title={`Switch to ${sec.label}`}
-            >
-              <Icon size={13} className="nav-btn-icon" />
-              <span className="nav-btn-label">{sec.label}</span>
-              {count !== null && count > 0 && (
-                <span className="nav-btn-badge">{count}</span>
+      {/* Section Dropdown Selector & Quick Stepper (Replaces horizontal scrolling bar) */}
+      <div className="editor-nav-dropdown-bar">
+        <div className="section-dropdown-wrapper" ref={dropdownRef}>
+          <button
+            type="button"
+            className={`section-dropdown-trigger ${isDropdownOpen ? "open" : ""}`}
+            onClick={() => setIsDropdownOpen((prev) => !prev)}
+            aria-expanded={isDropdownOpen}
+            title="Switch resume section"
+          >
+            <div className="dropdown-trigger-left">
+              <span className="dropdown-trigger-icon-wrap">
+                <CurrentIcon size={14} className="dropdown-trigger-icon" />
+              </span>
+              <span className="dropdown-trigger-label">{currentSectionObj.label}</span>
+              {currentCount !== null && currentCount > 0 && (
+                <span className="dropdown-count-badge">{currentCount}</span>
               )}
-            </button>
-          );
-        })}
+            </div>
+
+            <div className="dropdown-trigger-right">
+              <span className="dropdown-step-indicator">
+                {currentIndex + 1} of {SECTIONS.length}
+              </span>
+              <FiChevronDown
+                size={14}
+                className={`dropdown-chevron ${isDropdownOpen ? "rotated" : ""}`}
+              />
+            </div>
+          </button>
+
+          {isDropdownOpen && (
+            <div className="section-dropdown-menu custom-scrollbar">
+              <div className="dropdown-menu-header">
+                <span>Jump to Section</span>
+                <span className="dropdown-menu-count">{SECTIONS.length} sections</span>
+              </div>
+              <div className="dropdown-menu-list">
+                {SECTIONS.map((sec, idx) => {
+                  const Icon = sec.icon;
+                  const isSelected = sec.id === activeSection;
+                  const count = getSectionCount(sec.id);
+
+                  return (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      className={`dropdown-menu-item ${isSelected ? "selected" : ""}`}
+                      onClick={() => {
+                        setActiveSection(sec.id);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      <div className="dropdown-item-left">
+                        <span className="dropdown-item-num">{idx + 1}</span>
+                        <Icon size={13} className="dropdown-item-icon" />
+                        <span className="dropdown-item-name">{sec.label}</span>
+                      </div>
+                      <div className="dropdown-item-right">
+                        {count !== null && count > 0 && (
+                          <span className="dropdown-item-badge">{count}</span>
+                        )}
+                        {isSelected && (
+                          <FiCheck size={14} className="dropdown-item-check" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Prev / Next Step Buttons */}
+        <div className="editor-quick-stepper">
+          <button
+            type="button"
+            className="quick-step-btn"
+            disabled={!prevSection}
+            onClick={() => prevSection && setActiveSection(prevSection.id)}
+            title={prevSection ? `Previous: ${prevSection.label}` : "First section"}
+          >
+            <FiChevronLeft size={15} />
+          </button>
+          <button
+            type="button"
+            className="quick-step-btn"
+            disabled={!nextSection}
+            onClick={() => nextSection && setActiveSection(nextSection.id)}
+            title={nextSection ? `Next: ${nextSection.label}` : "Last section"}
+          >
+            <FiChevronRight size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Active Section Content */}
