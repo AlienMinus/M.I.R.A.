@@ -388,33 +388,33 @@
 }
 
 /* ========================================================
-   Executive Summary Card
+   Conclusion & Summary Card (at end of response)
    ======================================================== */
-.summary-highlight-card {
-  margin-bottom: 1.25rem;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  border-left: 4px solid #6366f1;
+.conclusion-highlight-card, .summary-highlight-card {
+  margin: 1.25rem 0 0.5rem 0;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-left: 4px solid #38bdf8;
   border-radius: 10px;
   padding: 12px 16px;
 }
 
-.summary-header {
+.conclusion-header, .summary-header {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #818cf8;
+  color: #38bdf8;
   margin-bottom: 6px;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.summary-body {
+.conclusion-body, .summary-body {
   font-size: 13.5px;
   color: #e4e4e7;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 /* ========================================================

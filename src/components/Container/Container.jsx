@@ -47,10 +47,18 @@ export default function Container({ chatId = 0, onMenuClick }) {
 
     const firstUserMsg = messages.find((m) => m.role === "user" && typeof m.text === "string");
     if (firstUserMsg && typeof firstUserMsg.text === "string") {
-      const title =
-        firstUserMsg.text.length > 30
-          ? firstUserMsg.text.slice(0, 30) + "..."
-          : firstUserMsg.text;
+      let title = localStorage.getItem(`mira-chat-title-${chatId}`);
+      if (!title) {
+        let clean = firstUserMsg.text.trim()
+          .replace(/^(please\s+)?(tell\s+me\s+about|what\s+is|who\s+is|give\s+me|explain|write\s+a\s+program\s+to|write\s+a\s+code\s+for|write\s+a\s+python\s+program\s+to|write\s+a\s+c\s+program\s+to|write\s+a|create\s+a|generate\s+code\s+for\s+a|generate\s+code\s+for|how\s+to)\s+/i, "")
+          .replace(/[?.!]+$/, "")
+          .trim();
+        if (!clean) clean = firstUserMsg.text.trim();
+        const words = clean.split(/\s+/).slice(0, 5);
+        title = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+        if (title.length > 28) title = title.slice(0, 26) + "...";
+        localStorage.setItem(`mira-chat-title-${chatId}`, title);
+      }
       document.title = `${title} | M.I.R.A.`;
     } else {
       document.title = "M.I.R.A.";

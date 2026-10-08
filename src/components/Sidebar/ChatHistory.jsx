@@ -2,6 +2,18 @@ import { useState, useEffect, useRef } from "react";
 import { FiMessageSquare } from "react-icons/fi";
 import SidebarItem from "./SidebarItem";
 
+export function formatDynamicTitle(prompt) {
+  if (!prompt || typeof prompt !== "string") return "New Chat";
+  let clean = prompt.trim()
+    .replace(/^(please\s+)?(tell\s+me\s+about|what\s+is|who\s+is|give\s+me|explain|write\s+a\s+program\s+to|write\s+a\s+code\s+for|write\s+a\s+python\s+program\s+to|write\s+a\s+c\s+program\s+to|write\s+a|create\s+a|generate\s+code\s+for\s+a|generate\s+code\s+for|how\s+to)\s+/i, "")
+    .replace(/[?.!]+$/, "")
+    .trim();
+  if (!clean) clean = prompt.trim();
+  const words = clean.split(/\s+/).slice(0, 5);
+  const capitalized = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  return capitalized.length > 28 ? capitalized.slice(0, 26) + "..." : capitalized;
+}
+
 export default function ChatHistory({ 
   currentChatId, 
   onSelectChat, 
@@ -19,17 +31,18 @@ export default function ChatHistory({
       const chats = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith("mira-chat-") && !key.startsWith("mira-chat-timestamp-")) {
+        if (key.startsWith("mira-chat-") && !key.startsWith("mira-chat-timestamp-") && !key.startsWith("mira-chat-title-")) {
           const id = parseInt(key.replace("mira-chat-", ""), 10);
           try {
             const stored = localStorage.getItem(key);
             if (stored) {
               const messages = JSON.parse(stored);
               if (Array.isArray(messages) && messages.length > 0) {
+                const savedTitle = localStorage.getItem(`mira-chat-title-${id}`);
                 const firstUserMsg = messages.find((m) => m.role === "user");
-                const title = firstUserMsg
-                  ? firstUserMsg.text.slice(0, 24) + (firstUserMsg.text.length > 24 ? "..." : "")
-                  : "New Chat";
+                const title = savedTitle || (firstUserMsg && firstUserMsg.text
+                  ? formatDynamicTitle(firstUserMsg.text)
+                  : "New Chat");
                 const timestampStr = localStorage.getItem(`mira-chat-timestamp-${id}`);
                 const timestamp = timestampStr ? parseInt(timestampStr, 10) : 0;
                 const content = messages.map((m) => m.text || "").join(" ");
@@ -61,6 +74,7 @@ export default function ChatHistory({
     if (window.confirm("Are you sure you want to delete this chat?")) {
       localStorage.removeItem(`mira-chat-${chatId}`);
       localStorage.removeItem(`mira-chat-timestamp-${chatId}`);
+      localStorage.removeItem(`mira-chat-title-${chatId}`);
       setSavedChats((prev) => prev.filter((chat) => chat.id !== chatId));
       if (chatId === currentChatId) {
         onNewChat();
