@@ -153,7 +153,9 @@ class PipelineService:
         if search_results:
             top_title = search_results[0].get("title", "")
             clean_title = re.split(r'[-–—|:]', top_title)[0].strip()
-            if len(clean_title) >= 3 and not any(w in clean_title.lower() for w in ["search", "results", "overview", "login"]):
+            prompt_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', prompt.lower()))
+            clean_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', clean_title.lower()))
+            if (prompt_words & clean_words) and not any(w in clean_title.lower() for w in ["search", "results", "overview", "login", "foundation", "footing", "dimension", "laminate"]):
                 canonical_topic = clean_title
 
         topic_images = self.image_service.get_topic_images(
