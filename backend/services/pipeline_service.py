@@ -255,6 +255,7 @@ class PipelineService:
         return {
             "success": True,
             "prompt": prompt,
+            "topic_title": topic_title,
             "format_applied": format_type,
             "generated_text": formatted_text,
             "summary": summary,
