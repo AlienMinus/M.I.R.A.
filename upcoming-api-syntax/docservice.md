@@ -1,3 +1,11 @@
+https://doc-manipulation.onrender.com/
+
+doc-manipulation.vercel.app
+
+
+
+
+
 document.addEventListener("DOMContentLoaded", function () {
   const loadingOverlay = document.getElementById("loading-overlay");
   const resultsSection = document.getElementById("results-section");

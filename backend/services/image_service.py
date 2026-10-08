@@ -5,14 +5,16 @@ import concurrent.futures
 import requests
 from bs4 import BeautifulSoup
 
+
 class ImageService:
     """
     Dedicated image scraping service that extracts relevant, high-resolution
-    topic images using Bing Images, Wikimedia PageImages API, and scraped web sources.
+    topic images using Wikimedia Commons (authentic media), Wikipedia PageImages,
+    Bing Images (with strict commercial/CAD filtering), and verified web sources.
     Guarantees at least 5 images related to the topic.
     """
     def __init__(self, timeout: int = 4):
-        self.timeout = (2.0, 3.0)
+        self.timeout = (2.5, 4.0)
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -24,12 +26,24 @@ class ImageService:
         }
         self.banned_substrings = [
             "spacer", "pixel", "tracking", "1x1", "avatar", "icon", "logo-small",
-            "badge", "ad-banner", "doubleclick", "analytics", "data:image"
+            "badge", "ad-banner", "doubleclick", "analytics", "data:image",
+            "fileicon", ".ogg", ".ogv", ".mp3", ".wav", ".pdf"
+        ]
+        self.banned_domains = [
+            "imimg.com", "indiamart.com", "tistatic.com", "tradeindia.com",
+            "advancelam.com", "dimensions.com", "vectorstock.com",
+            "aliexpress.com", "alibaba.com", "shutterstock.com", "alamy.com"
         ]
         self.animal_terms = {
             "tiger", "tigers", "sher", "deer", "deers", "hiran", "lion", "safari",
             "wildlife", "animal", "cartoon", "bird", "birds", "parrot", "parrots",
             "sparrow", "pigeon", "peacock", "nature wallpaper", "branch"
+        }
+        self.diagram_banned = {
+            "foundation", "footing", "blueprint", "cad", "diagram", "schematic",
+            "dimensions.com", "column footing", "slope of", "structure drawing",
+            "construction", "elevation", "floor plan", "circuit", "laminate",
+            "sunmica", "mdf", "plywood", "wood sheet", "timber board"
         }
 
     def _clean_query(self, query: str) -> str:
@@ -54,33 +68,130 @@ class ImageService:
         u_lower = url.lower()
         if any(banned in u_lower for banned in self.banned_substrings):
             return False
+        if any(domain in u_lower for domain in self.banned_domains):
+            return False
         return True
 
-    def _is_relevant_image(self, title: str, query: str) -> bool:
-        """Rejects absurdly unrelated images (e.g. wild animals, birds, blueprints, CAD diagrams)."""
+    def _is_relevant_image(self, title: str, query: str, url: str = "") -> bool:
+        """Rejects absurdly unrelated images (e.g. wild animals, birds, blueprints, CAD diagrams, laminates)."""
         q_lower = query.lower()
-        t_lower = title.lower()
+        t_lower = (title or "").lower()
+        u_lower = (url or "").lower()
 
-        # 1. Reject unrelated technical diagrams, blueprints, foundation drawings, CAD
-        diagram_banned = {
-            "foundation", "footing", "blueprint", "cad", "diagram", "schematic",
-            "dimensions.com", "column footing", "slope of", "structure drawing",
-            "construction", "elevation", "floor plan", "circuit"
-        }
-        if not any(term in q_lower for term in ["diagram", "blueprint", "cad", "foundation", "footing"]):
-            if any(term in t_lower for term in diagram_banned):
+        # 1. Reject unrelated technical diagrams, blueprints, foundation drawings, CAD, wood laminates
+        query_wants_diagram = any(term in q_lower for term in ["diagram", "blueprint", "cad", "foundation", "footing", "laminate", "wood"])
+        if not query_wants_diagram:
+            if any(term in t_lower or term in u_lower for term in self.diagram_banned):
                 return False
 
         # 2. Reject wild animals / birds / parrots for non-animal queries
         query_has_animal = any(term in q_lower for term in self.animal_terms)
         if not query_has_animal:
-            if any(term in t_lower for term in self.animal_terms):
+            if any(term in t_lower or term in u_lower for term in self.animal_terms):
                 return False
 
         return True
 
-    def scrape_bing_images(self, query: str, limit: int = 8) -> List[Dict[str, str]]:
-        """Scrapes direct image URLs from Bing Image search results."""
+    def scrape_wikimedia_commons(self, query: str, limit: int = 8) -> List[Dict[str, str]]:
+        """
+        Queries Wikimedia Commons (commons.wikimedia.org, namespace 6 File:)
+        for authentic, encyclopedic, public-domain illustrations, paintings, manuscripts, and photos.
+        """
+        clean_q = self._clean_query(query)
+        url = (
+            f"https://commons.wikimedia.org/w/api.php?action=query&format=json"
+            f"&generator=search&gsrsearch={urllib.parse.quote(clean_q)}"
+            f"&gsrnamespace=6&gsrlimit={limit + 4}&prop=imageinfo&iiprop=url|mime&iiurlwidth=800"
+        )
+        images = []
+        try:
+            resp = requests.get(url, headers=self.wiki_headers, timeout=self.timeout)
+            if resp.status_code == 200:
+                data = resp.json()
+                pages = data.get("query", {}).get("pages", {})
+                for pid, p in pages.items():
+                    infos = p.get("imageinfo", [])
+                    if not infos:
+                        continue
+                    info = infos[0]
+                    mime = info.get("mime", "").lower()
+                    if not mime.startswith("image/"):
+                        continue
+
+                    img_url = info.get("thumburl") or info.get("url")
+                    if not self._is_valid_image_url(img_url):
+                        continue
+
+                    raw_title = p.get("title", "")
+                    clean_title = re.sub(r'^File:\s*', '', raw_title, flags=re.IGNORECASE)
+                    clean_title = re.sub(r'\.(jpg|jpeg|png|webp|gif)$', '', clean_title, flags=re.IGNORECASE).strip()
+
+                    if not self._is_relevant_image(clean_title, query, img_url):
+                        continue
+
+                    images.append({
+                        "url": img_url,
+                        "title": clean_title[:80] or clean_q.title(),
+                        "source": "Wikimedia Commons"
+                    })
+                    if len(images) >= limit:
+                        break
+        except Exception as e:
+            print(f"[ImageService] Wikimedia Commons error for '{clean_q}': {e}")
+        return images
+
+    def scrape_wikipedia_article_images(self, query: str, limit: int = 4) -> List[Dict[str, str]]:
+        """
+        Queries Wikipedia (en.wikipedia.org) PageImages API.
+        STRICT: Only accepts images if the article title shares significant keywords with the query.
+        """
+        clean_q = self._clean_query(query)
+        url = (
+            f"https://en.wikipedia.org/w/api.php?action=query&format=json&generator=search"
+            f"&gsrsearch={urllib.parse.quote(clean_q)}&gsrlimit=6&prop=pageimages"
+            f"&pithumbsize=800"
+        )
+        images = []
+        try:
+            resp = requests.get(url, headers=self.wiki_headers, timeout=self.timeout)
+            if resp.status_code == 200:
+                data = resp.json()
+                pages = data.get("query", {}).get("pages", {})
+                
+                # Extract query keywords for title verification
+                q_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', clean_q.lower()))
+
+                for pid, p in pages.items():
+                    if "thumbnail" not in p or not p["thumbnail"].get("source"):
+                        continue
+                    
+                    page_title = p.get("title", "")
+                    title_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', page_title.lower()))
+
+                    # Guard against TV show actors or unrelated pages: require at least one keyword match
+                    if q_words and not (q_words & title_words):
+                        continue
+
+                    img_url = p["thumbnail"]["source"]
+                    if not self._is_valid_image_url(img_url):
+                        continue
+
+                    if not self._is_relevant_image(page_title, query, img_url):
+                        continue
+
+                    images.append({
+                        "url": img_url,
+                        "title": page_title[:80],
+                        "source": "Wikipedia"
+                    })
+                    if len(images) >= limit:
+                        break
+        except Exception as e:
+            print(f"[ImageService] Wikipedia article images error for '{clean_q}': {e}")
+        return images
+
+    def scrape_bing_images(self, query: str, limit: int = 6) -> List[Dict[str, str]]:
+        """Scrapes direct image URLs from Bing Image search results with strict domain and content filtering."""
         clean_q = self._clean_query(query)
         url = f"https://www.bing.com/images/search?q={urllib.parse.quote(clean_q)}&setlang=en-US&cc=US&first=1"
         images = []
@@ -95,7 +206,7 @@ class ImageService:
                         continue
                     title = titles[i].strip() if i < len(titles) and titles[i].strip() else clean_q.title()
                     title = re.sub(r'&[a-zA-Z]+;', ' ', title).strip()
-                    if not self._is_relevant_image(title, query):
+                    if not self._is_relevant_image(title, query, img_url):
                         continue
                     images.append({
                         "url": img_url,
@@ -108,36 +219,7 @@ class ImageService:
             print(f"[ImageService] Bing images failed for '{clean_q}': {e}")
         return images
 
-    def scrape_wikimedia_images(self, query: str, limit: int = 8) -> List[Dict[str, str]]:
-        """Queries Wikimedia PageImages API for reliable, high-resolution encyclopedic images."""
-        clean_q = self._clean_query(query)
-        url = (
-            f"https://en.wikipedia.org/w/api.php?action=query&format=json&generator=search"
-            f"&gsrsearch={urllib.parse.quote(clean_q)}&gsrlimit={limit}&prop=pageimages"
-            f"&pithumbsize=800"
-        )
-        images = []
-        try:
-            resp = requests.get(url, headers=self.wiki_headers, timeout=self.timeout)
-            if resp.status_code == 200:
-                data = resp.json()
-                pages = data.get("query", {}).get("pages", {})
-                for pid, p in pages.items():
-                    if "thumbnail" in p and p["thumbnail"].get("source"):
-                        img_url = p["thumbnail"]["source"]
-                        if self._is_valid_image_url(img_url):
-                            images.append({
-                                "url": img_url,
-                                "title": p.get("title", clean_q.title()),
-                                "source": "Wikimedia"
-                            })
-                    if len(images) >= limit:
-                        break
-        except Exception as e:
-            print(f"[ImageService] Wikimedia images failed for '{clean_q}': {e}")
-        return images
-
-    def extract_images_from_html(self, html: str, page_url: str, base_title: str = "") -> List[Dict[str, str]]:
+    def extract_images_from_html(self, html: str, page_url: str, base_title: str = "", query: str = "") -> List[Dict[str, str]]:
         """Extracts og:image and prominent content images from scraped HTML."""
         if not html:
             return []
@@ -147,7 +229,7 @@ class ImageService:
             og_img = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "og:image"})
             if og_img and og_img.get("content"):
                 src = og_img["content"].strip()
-                if self._is_valid_image_url(src):
+                if self._is_valid_image_url(src) and self._is_relevant_image(base_title, query, src):
                     images.append({
                         "url": src,
                         "title": base_title or "Article Image",
@@ -159,7 +241,7 @@ class ImageService:
                 alt = img.get("alt", "").strip()
                 if not src.startswith("http") or not self._is_valid_image_url(src):
                     continue
-                if len(alt) >= 5 and not any(b in alt.lower() for b in ["icon", "logo", "banner", "button"]):
+                if len(alt) >= 5 and self._is_relevant_image(alt, query, src):
                     images.append({
                         "url": src,
                         "title": alt[:80],
@@ -180,8 +262,8 @@ class ImageService:
         target_count: int = 8
     ) -> List[Dict[str, str]]:
         """
-        Gathers at least min_images related images using Bing, Wikimedia, and page extracts concurrently.
-        Uses canonical_topic when provided to avoid misspellings and false matches.
+        Gathers at least min_images related images prioritizing Wikimedia Commons,
+        Wikipedia articles, and filtered Bing results concurrently.
         """
         search_query = canonical_topic if canonical_topic and len(canonical_topic) >= 3 else query
         combined: List[Dict[str, str]] = []
@@ -194,31 +276,41 @@ class ImageService:
             seen_urls.add(u)
             combined.append(img)
 
-        # 1. Fetch Wikimedia and Bing in parallel, prioritizing encyclopedic Wikimedia Commons
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            wiki_future = executor.submit(self.scrape_wikimedia_images, search_query, limit=target_count)
+        # 1. Fetch Wikimedia Commons, Wikipedia, and Bing in parallel
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            commons_future = executor.submit(self.scrape_wikimedia_commons, search_query, limit=target_count)
+            wiki_future = executor.submit(self.scrape_wikipedia_article_images, search_query, limit=4)
             bing_future = executor.submit(self.scrape_bing_images, search_query, limit=target_count)
 
-            # Prioritize verified encyclopedic Wikimedia images first
+            # Prioritize authentic Wikimedia Commons images first
             try:
-                for img in wiki_future.result(timeout=5.0):
+                for img in commons_future.result(timeout=4.5):
                     add_img(img)
             except Exception:
                 pass
 
-            # Supplement with verified Bing images
+            # Supplement with verified Wikipedia article images
             try:
-                for img in bing_future.result(timeout=5.0):
+                for img in wiki_future.result(timeout=4.0):
                     add_img(img)
             except Exception:
                 pass
+
+            # Supplement with Bing images if needed
+            if len(combined) < target_count:
+                try:
+                    for img in bing_future.result(timeout=4.0):
+                        add_img(img)
+                except Exception:
+                    pass
 
         # 2. Extract images from scraped pages ONLY if verified relevant
         if len(combined) < min_images and scraped_html_list:
             for page in scraped_html_list:
                 for img in page.get("images", []):
                     img_title = img.get("title", "")
-                    if self._is_relevant_image(img_title, search_query):
+                    img_url = img.get("url", "")
+                    if self._is_relevant_image(img_title, search_query, img_url):
                         add_img(img)
                 if len(combined) >= min_images:
                     break
