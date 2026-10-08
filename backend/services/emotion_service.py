@@ -140,7 +140,7 @@ class EmotionService:
 
         if emotion == "joy":
             return (
-                "That is awesome! I love hearing positive vibes like that. 🎉 "
+                "That is awesome! I love hearing positive news like that. "
                 "What's the good news? Tell me more!"
             )
 
@@ -158,7 +158,7 @@ class EmotionService:
 
         if emotion == "love":
             return (
-                "Thank you so much! That means the world to me. I'm always right here whenever you need me! ✨"
+                "Thank you so much! That means the world to me. I'm always right here whenever you need me."
             )
 
         return "I'm listening. Tell me more about what's on your mind!"
