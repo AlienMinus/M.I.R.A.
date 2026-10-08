@@ -1,6 +1,7 @@
 import re
 import urllib.parse
 from typing import List, Dict, Any, Optional
+import concurrent.futures
 import requests
 from bs4 import BeautifulSoup
 
@@ -10,8 +11,8 @@ class ImageService:
     topic images using Bing Images, Wikimedia PageImages API, and scraped web sources.
     Guarantees at least 5 images related to the topic.
     """
-    def __init__(self, timeout: int = 5):
-        self.timeout = timeout
+    def __init__(self, timeout: int = 4):
+        self.timeout = (2.0, 3.0)
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -25,6 +26,7 @@ class ImageService:
             "spacer", "pixel", "tracking", "1x1", "avatar", "icon", "logo-small",
             "badge", "ad-banner", "doubleclick", "analytics", "data:image"
         ]
+        self.animal_terms = {"tiger", "tigers", "sher", "deer", "deers", "hiran", "lion", "safari", "wildlife", "animal", "cartoon"}
 
     def _clean_query(self, query: str) -> str:
         """Strips conversational noise from query for clean image searching."""
@@ -50,6 +52,16 @@ class ImageService:
             return False
         return True
 
+    def _is_relevant_image(self, title: str, query: str) -> bool:
+        """Rejects absurdly unrelated images (e.g. wild animal cartoons when looking up a person)."""
+        q_lower = query.lower()
+        t_lower = title.lower()
+        query_has_animal = any(term in q_lower for term in self.animal_terms)
+        if not query_has_animal:
+            if any(term in t_lower for term in self.animal_terms):
+                return False
+        return True
+
     def scrape_bing_images(self, query: str, limit: int = 8) -> List[Dict[str, str]]:
         """Scrapes direct image URLs from Bing Image search results."""
         clean_q = self._clean_query(query)
@@ -66,6 +78,8 @@ class ImageService:
                         continue
                     title = titles[i].strip() if i < len(titles) and titles[i].strip() else clean_q.title()
                     title = re.sub(r'&[a-zA-Z]+;', ' ', title).strip()
+                    if not self._is_relevant_image(title, query):
+                        continue
                     images.append({
                         "url": img_url,
                         "title": title[:80],
@@ -113,7 +127,6 @@ class ImageService:
         images = []
         try:
             soup = BeautifulSoup(html, "html.parser")
-            # 1. OpenGraph image
             og_img = soup.find("meta", property="og:image") or soup.find("meta", attrs={"name": "og:image"})
             if og_img and og_img.get("content"):
                 src = og_img["content"].strip()
@@ -124,13 +137,10 @@ class ImageService:
                         "source": "Web Article"
                     })
 
-            # 2. Main content <img> tags with alt descriptions
             for img in soup.find_all("img"):
                 src = img.get("src") or img.get("data-src") or ""
                 alt = img.get("alt", "").strip()
-                if not src.startswith("http"):
-                    continue
-                if not self._is_valid_image_url(src):
+                if not src.startswith("http") or not self._is_valid_image_url(src):
                     continue
                 if len(alt) >= 5 and not any(b in alt.lower() for b in ["icon", "logo", "banner", "button"]):
                     images.append({
@@ -147,14 +157,16 @@ class ImageService:
     def get_topic_images(
         self,
         query: str,
+        canonical_topic: Optional[str] = None,
         scraped_html_list: Optional[List[Dict[str, str]]] = None,
         min_images: int = 5,
         target_count: int = 8
     ) -> List[Dict[str, str]]:
         """
-        Gathers at least min_images related images using Bing, Wikimedia, and page extracts.
-        Deduplicates by URL and ensures high relevance.
+        Gathers at least min_images related images using Bing, Wikimedia, and page extracts concurrently.
+        Uses canonical_topic when provided to avoid misspellings and false matches.
         """
+        search_query = canonical_topic if canonical_topic and len(canonical_topic) >= 3 else query
         combined: List[Dict[str, str]] = []
         seen_urls = set()
 
@@ -165,18 +177,24 @@ class ImageService:
             seen_urls.add(u)
             combined.append(img)
 
-        # 1. Primary: Bing Images
-        bing_imgs = self.scrape_bing_images(query, limit=target_count)
-        for img in bing_imgs:
-            add_img(img)
+        # 1. Fetch Bing and Wikimedia in parallel
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            bing_future = executor.submit(self.scrape_bing_images, search_query, limit=target_count)
+            wiki_future = executor.submit(self.scrape_wikimedia_images, search_query, limit=target_count)
 
-        # 2. Secondary: Wikimedia (for encyclopedic quality & guarantee)
-        if len(combined) < target_count:
-            wiki_imgs = self.scrape_wikimedia_images(query, limit=target_count)
-            for img in wiki_imgs:
-                add_img(img)
+            try:
+                for img in bing_future.result(timeout=4.0):
+                    add_img(img)
+            except Exception:
+                pass
 
-        # 3. Tertiary: Extracted images from scraped pages
+            try:
+                for img in wiki_future.result(timeout=4.0):
+                    add_img(img)
+            except Exception:
+                pass
+
+        # 2. Extract images from scraped pages if needed
         if len(combined) < min_images and scraped_html_list:
             for page in scraped_html_list:
                 for img in page.get("images", []):
