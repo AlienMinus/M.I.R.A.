@@ -161,101 +161,48 @@
 }
 
 /* ========================================================
-   Microchip Neural Pipeline Loader Animation
+   Microchip Neural Pipeline Loader Animation (Minimal Normal)
    ======================================================== */
-.microchip-bubble {
-  padding: 8px 0;
+.microchip-loader-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 0;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.microchip-loader-box {
+.microchip-icon-simple {
+  color: #7fffd4; /* aquamarine */
+  flex-shrink: 0;
+  animation: microchip-gentle-pulse 2s infinite ease-in-out;
+}
+
+.microchip-single-label {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #9ca3af; /* gray */
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+@keyframes microchip-gentle-pulse {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.topic-visuals-title,
+.summary-title,
+.sources-title {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(18, 18, 22, 0.85);
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
-  padding: 8px 16px;
-  border-radius: 9999px;
-  backdrop-filter: blur(12px);
-  animation: fadeIn 0.3s ease-out;
+  gap: 6px;
 }
 
-.microchip-icon-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-}
-
-.microchip-icon-pulse {
-  animation: microchip-spin-glow 3s infinite ease-in-out;
-}
-
-.microchip-ping-ring {
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  border: 1px solid #6366f1;
-  opacity: 0.75;
-  animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.microchip-status-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-}
-
-.microchip-engine-tag {
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  color: #6366f1;
-}
-
-.microchip-phase-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #e4e4e7;
-  white-space: nowrap;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.microchip-activity-dots {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: 4px;
-}
-
-.microchip-activity-dots span {
-  width: 4px;
-  height: 4px;
-  background: #818cf8;
-  border-radius: 50%;
-  animation: pulse 1.2s infinite ease-in-out both;
-}
-
-.microchip-activity-dots span:nth-child(1) { animation-delay: -0.3s; }
-.microchip-activity-dots span:nth-child(2) { animation-delay: -0.15s; }
-
-@keyframes microchip-spin-glow {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px #6366f1); }
-  50% { transform: scale(1.12); filter: drop-shadow(0 0 6px #818cf8); }
-}
-
-@keyframes ping {
-  75%, 100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
+.header-icon {
+  flex-shrink: 0;
 }
 
 /* ========================================================
