@@ -18,7 +18,6 @@ from .nlp_service import NLPService
 from .image_service import ImageService
 from .rag_service import RAGService
 from .emotion_service import EmotionService
-from .code_service import CodeService
 
 class PipelineService:
     def __init__(self, device: str = None):
@@ -38,7 +37,6 @@ class PipelineService:
         self.image_service = ImageService()
         self.rag_service = RAGService()
         self.emotion_service = EmotionService()
-        self.code_service = CodeService()
 
         self.gpt_model, self.tokenizer = load_gpt_model(
             model_path=config.MODEL_PATH,
@@ -69,7 +67,14 @@ class PipelineService:
         title = " ".join([w.capitalize() for w in words])
         return title[:28] or "New Chat"
 
-    def run_pipeline(self, prompt: str, requested_format: str = "auto") -> Dict[str, Any]:
+    def run_pipeline(
+        self,
+        prompt: str,
+        requested_format: str = "auto",
+        temperature: float = 0.7,
+        system_prompt: str = "",
+        max_tokens: int = 400
+    ) -> Dict[str, Any]:
         start_time = time.time()
         prompt = prompt.strip()
         if not prompt:
@@ -77,27 +82,6 @@ class PipelineService:
 
         execution_log = []
         topic_title = self.generate_topic_title(prompt)
-
-        # 0. CHECK CODING REQUEST (Multi-language code generator)
-        if self.code_service.is_coding_request(prompt):
-            code_res = self.code_service.generate_code_response(prompt)
-            if code_res.get("success"):
-                elapsed = round(time.time() - start_time, 2)
-                execution_log.append(f"Synthesized code for {code_res.get('language')}.")
-                return {
-                    "success": True,
-                    "prompt": prompt,
-                    "topic_title": topic_title,
-                    "format_applied": "code",
-                    "generated_text": code_res["text"],
-                    "summary": code_res.get("summary", ""),
-                    "images": [],
-                    "sources": [],
-                    "scraped_count": 0,
-                    "execution_time_seconds": elapsed,
-                    "pipeline_log": execution_log,
-                    "language": code_res.get("language")
-                }
 
         # 1. CHECK DIRECT RAG MATCH (Persona, greetings, ecosystem apps)
         direct_match = self.rag_service.find_direct_response(prompt)
@@ -193,7 +177,12 @@ class PipelineService:
         gpt_generated_text = ""
         try:
             top_snippet = search_results[0]["snippet"] if search_results else ""
-            if top_snippet:
+            clean_sys = system_prompt.strip()[:120] if system_prompt else ""
+            if clean_sys and top_snippet:
+                cond_text = f"System: {clean_sys}\nContext: {top_snippet[:80]}\nQ: {prompt}\nA:"
+            elif clean_sys:
+                cond_text = f"System: {clean_sys}\nQ: {prompt}\nA:"
+            elif top_snippet:
                 cond_text = f"Q: {prompt}\nContext: {top_snippet[:100]}\nA:"
             else:
                 cond_text = f"Q: {prompt}\nA:"
@@ -202,9 +191,18 @@ class PipelineService:
             if len(tokens) > 70:
                 tokens = tokens[-70:]
 
+            # Apply user temperature safely within [0.1, 1.8]
+            clamped_temp = max(0.1, min(float(temperature), 1.8))
+            token_budget = max(30, min(int(max_tokens) // 5, 120))
+
             input_tensor = torch.tensor([tokens], dtype=torch.long, device=self.device)
             with torch.no_grad():
-                gen_ids = self.gpt_model.generate(input_tensor, max_new_tokens=60, temperature=0.7, top_k=40)
+                gen_ids = self.gpt_model.generate(
+                    input_tensor,
+                    max_new_tokens=token_budget,
+                    temperature=clamped_temp,
+                    top_k=40
+                )
             gpt_generated_text = self.tokenizer.decode(gen_ids[0].tolist())
             if cond_text in gpt_generated_text:
                 gpt_generated_text = gpt_generated_text.replace(cond_text, "").strip()

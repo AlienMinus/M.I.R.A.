@@ -189,7 +189,8 @@ class CodeService:
             r"\b(bubble\s+sort|binary\s+search|quick\s+sort|merge\s+sort|fibonacci|factorial|palindrome|prime\s+number|linked\s+list|reverse\s+a\s+string|reverse\s+string|wsgi\s+server|random\s+number)\s+in\s+[a-z\+\#]+\b",
             r"\b(sql\s+query\s+to|select\s+query\s+for|join\s+query\s+in\s+sql)\b",
             r"\b(python|c|cpp|java|javascript|typescript|html|rust|go)\s+code\s+for\b",
-            r"\b(generate|write)\s+code\s+for\b"
+            r"\b(generate|write)\s+code\s+for\b",
+            r"\b(responsive\s+)?html\s+.*(card|button|page|form|component|layout)\b"
         ]
 
         for pat in action_patterns:
@@ -205,7 +206,8 @@ class CodeService:
             "hello world", "factorial", "fibonacci", "reverse a string", "reverse string", "palindrome",
             "prime number", "bubble sort", "binary search", "matrix multiplication",
             "linked list", "todo app in react", "rest api", "for loop", "while loop",
-            "reading the content", "read a file", "read file", "wsgi server", "random number"
+            "reading the content", "read a file", "read file", "wsgi server", "random number",
+            "card", "button", "landing page", "profile card", "component", "template"
         ])
 
         return bool(has_lang and has_code_intent)

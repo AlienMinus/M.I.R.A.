@@ -54,12 +54,21 @@ def generate_endpoint():
     data = request.get_json(silent=True) or {}
     prompt = data.get('prompt', '').strip()
     requested_format = data.get('format', 'auto')
+    temperature = float(data.get('temperature', 0.7))
+    system_prompt = data.get('system_prompt', '')
+    max_tokens = int(data.get('max_tokens', 400))
 
     if not prompt:
         return jsonify({'error': 'No prompt provided', 'success': False}), 400
 
     try:
-        result = pipeline.run_pipeline(prompt=prompt, requested_format=requested_format)
+        result = pipeline.run_pipeline(
+            prompt=prompt,
+            requested_format=requested_format,
+            temperature=temperature,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens
+        )
         return jsonify(result), 200
 
     except Exception as e:
