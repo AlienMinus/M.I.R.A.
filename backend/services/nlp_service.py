@@ -225,13 +225,16 @@ class NLPService:
             if lower_s.endswith(("and", "or", "because", "with", "which", "that", "the", "a", "an")):
                 continue
 
-            # Ensure sentence is topically relevant
+            # Ensure sentence is topically relevant to query
             if query_keywords:
                 s_words = set(re.findall(r'\b\w+\b', s.lower()))
-                if not (s_words & query_keywords):
-                    entities = self.get_entities_and_numbers(s)
-                    if not entities:
-                        continue
+                has_keyword = bool(s_words & query_keywords)
+                has_stem = any(
+                    len(qw) >= 4 and any(qw in sw or sw in qw for sw in s_words if len(sw) >= 4)
+                    for qw in query_keywords
+                )
+                if not (has_keyword or has_stem):
+                    continue
 
             if not self.is_semantically_duplicate(s, cleaned):
                 cleaned.append(s)

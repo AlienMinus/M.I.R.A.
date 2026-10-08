@@ -107,7 +107,7 @@ class SearchService:
         url = f"https://www.bing.com/search?q={quote(query)}&setlang=en-US&cc=US"
         results = []
         try:
-            resp = self.session.get(url, timeout=(2.0, 3.0))
+            resp = self.session.get(url, timeout=(3.0, 5.0))
             if resp.status_code == 200:
                 soup = BeautifulSoup(resp.text, "html.parser")
                 items = soup.select("li.b_algo")
@@ -139,32 +139,62 @@ class SearchService:
             print(f"[SearchService] Bing search failed: {e}")
         return results
 
-    def search_wikipedia(self, query: str, max_results: int = 3) -> List[Dict[str, str]]:
-        url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={quote(query)}&limit={max_results}&namespace=0&format=json"
+    def search_wikipedia(self, query: str, max_results: int = 4) -> List[Dict[str, str]]:
         results = []
+        # 1. Primary: Wikipedia extracts API for rich, authoritative introductory paragraphs
+        extract_url = (
+            f"https://en.wikipedia.org/w/api.php?action=query&format=json"
+            f"&generator=search&gsrsearch={quote(query)}&gsrlimit={max_results}"
+            f"&prop=extracts&exintro=1&explaintext=1"
+        )
         try:
-            resp = self.session.get(url, timeout=(2.0, 3.0))
+            resp = self.session.get(extract_url, timeout=(3.0, 5.0))
             if resp.status_code == 200:
-                data = resp.json()
-                if len(data) >= 4:
-                    titles, snippets, links = data[1], data[2], data[3]
-                    for title, snippet, link in zip(titles, snippets, links):
-                        if not self.is_blocked(title) and not self.is_blocked(snippet):
-                            results.append({
-                                "title": title,
-                                "link": link,
-                                "snippet": snippet if snippet else f"Wikipedia article on {title}",
-                                "source": "Wikipedia"
-                            })
+                pages = resp.json().get("query", {}).get("pages", {})
+                for pid, p in pages.items():
+                    title = p.get("title", "")
+                    extract = p.get("extract", "").strip()
+                    if title and extract and not self.is_blocked(title) and not self.is_blocked(extract):
+                        link = f"https://en.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
+                        results.append({
+                            "title": title,
+                            "link": link,
+                            "snippet": extract[:350],
+                            "source": "Wikipedia"
+                        })
+                    if len(results) >= max_results:
+                        break
         except Exception as e:
-            print(f"[SearchService] Wikipedia search failed: {e}")
-        return results
+            print(f"[SearchService] Wikipedia extract search notice: {e}")
+
+        # 2. Secondary fallback: OpenSearch
+        if len(results) < max_results:
+            url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={quote(query)}&limit={max_results}&namespace=0&format=json"
+            try:
+                resp = self.session.get(url, timeout=(3.0, 4.0))
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if len(data) >= 4:
+                        titles, snippets, links = data[1], data[2], data[3]
+                        for title, snippet, link in zip(titles, snippets, links):
+                            if not any(r["title"] == title for r in results):
+                                if not self.is_blocked(title) and not self.is_blocked(snippet):
+                                    results.append({
+                                        "title": title,
+                                        "link": link,
+                                        "snippet": snippet if snippet else f"Wikipedia article on {title}",
+                                        "source": "Wikipedia"
+                                    })
+            except Exception as e:
+                pass
+
+        return results[:max_results]
 
     def search_duckduckgo_api(self, query: str) -> List[Dict[str, str]]:
         url = f"https://api.duckduckgo.com/?q={quote(query)}&format=json"
         results = []
         try:
-            resp = self.session.get(url, timeout=(2.0, 3.0))
+            resp = self.session.get(url, timeout=(3.0, 4.0))
             data = resp.json()
             abstract = data.get("AbstractText", "")
             abstract_url = data.get("AbstractURL", "")
