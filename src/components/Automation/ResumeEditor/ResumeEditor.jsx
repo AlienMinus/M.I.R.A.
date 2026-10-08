@@ -42,7 +42,8 @@ export default function ResumeEditor({
   onUpdateProfile,
   onPhotoUploadClick,
   onRemovePhoto,
-  onAiPolishSummary
+  onAiPolishSummary,
+  isPolishingSummary = false
 }) {
   const [activeSection, setActiveSection] = useState("header");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -207,6 +208,7 @@ export default function ResumeEditor({
               onUpdateProfile((prev) => ({ ...prev, summary: newSummary }))
             }
             onAiPolish={onAiPolishSummary}
+            isPolishing={isPolishingSummary}
           />
         )}
 

@@ -1,17 +1,31 @@
-import { FiZap } from "react-icons/fi";
+import { FiZap, FiLoader } from "react-icons/fi";
 
-export default function SummaryEditor({ summary = "", onChange, onAiPolish }) {
+export default function SummaryEditor({
+  summary = "",
+  onChange,
+  onAiPolish,
+  isPolishing = false
+}) {
   return (
     <div className="admin-card">
       <div className="card-header-row">
         <h3 className="card-title">Professional Summary</h3>
         <button
           type="button"
-          className="ai-polish-btn"
+          className={`ai-polish-btn ${isPolishing ? "is-loading" : ""}`}
           onClick={onAiPolish}
-          title="Enhance summary with AI polish"
+          disabled={isPolishing}
+          title={isPolishing ? "Polishing with AI..." : "Enhance summary with AI polish"}
         >
-          <FiZap size={13} /> AI Polish
+          {isPolishing ? (
+            <>
+              <FiLoader size={13} className="animate-spin" /> Polishing…
+            </>
+          ) : (
+            <>
+              <FiZap size={13} /> AI Polish
+            </>
+          )}
         </button>
       </div>
       <textarea

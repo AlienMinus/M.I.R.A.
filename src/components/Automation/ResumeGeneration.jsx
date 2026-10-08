@@ -52,6 +52,7 @@ export default function ResumeGeneration() {
     return 48; // default 48% editor / 52% preview
   });
   const [isDraggingSplitter, setIsDraggingSplitter] = useState(false);
+  const [isPolishingSummary, setIsPolishingSummary] = useState(false);
 
   const photoInputRef = useRef(null);
   const jsonImportRef = useRef(null);
@@ -341,14 +342,45 @@ export default function ResumeGeneration() {
     }));
   };
 
-  // AI Polish summary
-  const handleAIEnhanceSummary = () => {
-    const orig = currentProfile.summary || "";
-    const polished = orig.trim()
-      ? `${orig.trim()} Proven ability to architect resilient systems, lead high-velocity development squads, and deliver mission-critical software solutions.`
-      : "High-impact software engineering professional with proven expertise across distributed systems, machine learning pipelines, and full-stack architecture.";
-    updateCurrentProfile((prev) => ({ ...prev, summary: polished }));
-    showToast("Summary enhanced with AI polish!");
+  // AI Polish summary using backend Hugging Face / ATS engine with full resume context
+  const handleAIEnhanceSummary = async () => {
+    if (isPolishingSummary) return;
+    setIsPolishingSummary(true);
+    showToast("Analyzing full resume context with AI engine…");
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/resume/polish-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: currentProfile,
+          summary: currentProfile.summary || ""
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to reach AI service`);
+      }
+
+      const data = await response.json();
+      if (data && data.success && data.summary) {
+        updateCurrentProfile((prev) => ({ ...prev, summary: data.summary }));
+        showToast("Summary synthesized with ATS AI optimization!");
+      } else {
+        throw new Error(data?.error || "AI service returned no summary");
+      }
+    } catch (err) {
+      console.warn("Backend AI polish failed, using contextual fallback:", err);
+      // Contextual fallback grounded in candidate's skills and roles
+      const skillsText = (currentProfile.skills || [])
+        .map((s) => s.items)
+        .filter(Boolean)
+        .join(", ");
+      const fallbackPolished = `${currentProfile.summary ? currentProfile.summary.trim() + " " : ""}Proven ability to architect scalable solutions, spearhead development in ${skillsText.slice(0, 90)}, and deliver production-grade systems aligned with strategic goals.`;
+      updateCurrentProfile((prev) => ({ ...prev, summary: fallbackPolished }));
+      showToast("Applied contextual ATS summary enhancement.");
+    } finally {
+      setIsPolishingSummary(false);
+    }
   };
 
   // JSON Export / Import
@@ -468,6 +500,7 @@ export default function ResumeGeneration() {
             onPhotoUploadClick={() => photoInputRef.current?.click()}
             onRemovePhoto={handleRemovePhoto}
             onAiPolishSummary={handleAIEnhanceSummary}
+            isPolishingSummary={isPolishingSummary}
           />
         )}
 
