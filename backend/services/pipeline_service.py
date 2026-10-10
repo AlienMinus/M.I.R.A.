@@ -288,8 +288,9 @@ class PipelineService:
         for p in scraped_paragraphs:
             raw_candidates.extend(self.nlp_service.filter_and_clean_sentences(p, query=prompt, is_trusted_source=False))
 
-        # Add GPT generated sentences
-        if gpt_generated_text:
+        # Add GPT generated sentences only if user specifically asked for creative stories or if no factual candidates exist
+        is_creative_query = any(w in prompt.lower() for w in ["story", "fairy", "tale", "imagine", "poem"])
+        if gpt_generated_text and (is_creative_query or not raw_candidates):
             raw_candidates.extend(self.nlp_service.filter_and_clean_sentences(gpt_generated_text, query=prompt, is_trusted_source=False))
 
         # If candidates are sparse (e.g. offline, DNS failure), synthesize authoritative encyclopedic knowledge

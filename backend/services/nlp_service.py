@@ -19,7 +19,8 @@ class NLPService:
             "rainbow", "lulu", "tim", "lily", "once upon a time", "went back inside",
             "little girl", "little boy", "mommy", "daddy", "she was very sad",
             "he was happy", "smiled and said", "bright colors", "hugged each other",
-            "one day", "sunny day", "played together"
+            "one day", "sunny day", "played together", "papa", "mama", "annie",
+            "billy", "village", "journey home", "once there was", "named tim", "named lilly"
         }
 
         # Format detection keywords

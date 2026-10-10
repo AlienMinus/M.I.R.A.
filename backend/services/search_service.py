@@ -4,7 +4,7 @@ import base64
 import requests
 from bs4 import BeautifulSoup
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from urllib.parse import unquote, quote
 
 class SearchService:
@@ -59,6 +59,8 @@ class SearchService:
             r'^(please\s+)?(tell\s+me\s+about|explain|describe)\s+',
             r'^(can\s+you\s+)?(tell\s+me|explain|write\s+about)\s+',
             r'^(detailed\s+explanation\s+of|overview\s+of)\s+',
+            r'^(who\s+is|who\s+was|who\s+were|what\s+is|what\s+was|what\s+are|where\s+is|where\s+was|why\s+is|why\s+was|how\s+does|how\s+do|how\s+is)\s+',
+            r'^(biography\s+of|history\s+of|life\s+of|background\s+of)\s+',
         ]
         suffixes = [
             r'\s+(in\s+paragraphs?|as\s+bullet\s+points?|as\s+bullets?|as\s+notes?|in\s+detail|step\s+by\s+step)$',
@@ -89,14 +91,12 @@ class SearchService:
         return href
 
     def _is_relevant_language(self, title: str, snippet: str, query: str) -> bool:
-        """Filters out foreign language search results (e.g. Turkish or Chinese pages for English queries)."""
+        """Filters out foreign language search results."""
         combined = f"{title} {snippet}".lower()
-        # If query is in Latin alphabet, reject CJK search results (e.g. 知乎, 百度)
         if not re.search(r'[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]', query):
             if re.search(r'[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]', title):
                 return False
 
-        # Common foreign stopwords/phrases from random regional index contamination
         foreign_words = {"yansıtırken", "sesin", "geldiğini", "görünmediğini", "fark ettin", "forumları", "nasıl", "nedir", "nasil"}
         if any(w in combined for w in foreign_words):
             return False
@@ -104,15 +104,28 @@ class SearchService:
         return True
 
     def _is_allowed_domain(self, link: str, query: str) -> bool:
-        """Filters out unrelated developer forums and tech answer boards for non-technical queries."""
+        """Filters out adult sites, help policy pages, and unrelated developer forums."""
         lower_link = link.lower()
-        dev_forums = ["social.msdn.microsoft.com", "answers.microsoft.com", "experts-exchange.com"]
-        if any(df in lower_link for df in dev_forums):
-            ms_keywords = {"c#", ".net", "dotnet", "azure", "visual studio", "powershell", "win32", "wpf", "windows server", "msdn"}
+        banned = [
+            "xnxx.com", "pornhub.com", "xvideos.com", "nudist", "support.google.com",
+            "youtube.com/answer", "policies.google.com", "social.msdn.microsoft.com",
+            "answers.microsoft.com", "experts-exchange.com"
+        ]
+        if any(b in lower_link for b in banned):
+            ms_keywords = {"c#", ".net", "dotnet", "azure", "visual studio", "powershell", "win32", "wpf"}
             q_words = set(re.findall(r'\b\w+\b', query.lower()))
-            if not (q_words & ms_keywords):
+            if not (q_words & ms_keywords) or "xnxx" in lower_link or "nudist" in lower_link:
                 return False
         return True
+
+    def _is_topically_relevant(self, title: str, snippet: str, query: str) -> bool:
+        """Ensures search snippet has at least one content keyword matching the query."""
+        q_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', query.lower()))
+        q_content = {w for w in q_words if w not in {"who", "was", "the", "what", "where", "how", "why", "are", "tell", "give", "and", "for"}}
+        if not q_content:
+            return True
+        combined = f"{title} {snippet}".lower()
+        return any(qw in combined for qw in q_content)
 
     def search_bing(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
         url = f"https://www.bing.com/search?q={quote(query)}&setlang=en-US&cc=US"
@@ -140,6 +153,9 @@ class SearchService:
                         if not self._is_allowed_domain(link, query):
                             continue
 
+                        if not self._is_topically_relevant(title, snippet, query):
+                            continue
+
                         if link and link.startswith("http") and "bing.com" not in link:
                             results.append({
                                 "title": title,
@@ -162,10 +178,52 @@ class SearchService:
             "User-Agent": "MIRA-Search-Agent/2.0 (contact@mira.ai; educational demo)",
             "Accept": "application/json"
         }
+        clean_q = query.strip()
+
+        # Step 1: Direct summary check for exact title
+        try:
+            direct_title = clean_q.replace(" ", "_")
+            direct_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote(direct_title)}"
+            resp_direct = self.session.get(direct_url, headers=wiki_headers, timeout=(4.0, 6.0))
+            if resp_direct.status_code == 200:
+                d_data = resp_direct.json()
+                d_type = d_data.get("type", "")
+                if d_type != "disambiguation":
+                    page_title = d_data.get("title", "")
+                    lead_extract = d_data.get("extract", "")
+                    if page_title and len(lead_extract) >= 120:
+                        # Fetch full multi-paragraph intro
+                        intro_url = (
+                            f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts"
+                            f"&exintro=1&explaintext=1&titles={quote(page_title)}&format=json"
+                        )
+                        full_extract = lead_extract
+                        try:
+                            resp_intro = self.session.get(intro_url, headers=wiki_headers, timeout=(4.0, 6.0))
+                            if resp_intro.status_code == 200:
+                                pages = resp_intro.json().get("query", {}).get("pages", {})
+                                for pid, p in pages.items():
+                                    ex = p.get("extract", "").strip()
+                                    if len(ex) > len(full_extract):
+                                        full_extract = ex
+                        except Exception:
+                            pass
+
+                        return {
+                            "title": f"{page_title} - Wikipedia",
+                            "link": f"https://en.wikipedia.org/wiki/{quote(page_title.replace(' ', '_'))}",
+                            "snippet": lead_extract[:350],
+                            "full_extract": full_extract,
+                            "source": "Wikipedia"
+                        }
+        except Exception:
+            pass
+
+        # Step 2: Wikipedia Search API with title matching
         try:
             search_url = (
                 f"https://en.wikipedia.org/w/api.php?action=query&list=search"
-                f"&srsearch={quote(query)}&utf8=&format=json&srlimit=2"
+                f"&srsearch={quote(clean_q)}&utf8=&format=json&srlimit=4"
             )
             resp = self.session.get(search_url, headers=wiki_headers, timeout=(4.0, 7.0))
             if resp.status_code != 200:
@@ -174,7 +232,16 @@ class SearchService:
             if not search_items:
                 return None
 
-            top_title = search_items[0].get("title", "")
+            # Prioritize title with exact word match
+            chosen_item = search_items[0]
+            clean_q_lower = clean_q.lower()
+            for it in search_items:
+                t = it.get("title", "").lower()
+                if t == clean_q_lower or (all(w in t for w in clean_q_lower.split()) and len(t.split()) <= len(clean_q_lower.split()) + 1):
+                    chosen_item = it
+                    break
+
+            top_title = chosen_item.get("title", "")
             if not top_title or self.is_blocked(top_title):
                 return None
 
