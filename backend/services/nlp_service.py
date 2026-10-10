@@ -53,10 +53,15 @@ class NLPService:
                 .replace("â€¡", "")
                 .replace("Ã©", "e")
                 .replace("Ã¡", "a")
+                .replace("\ufffd", "–")
+                .replace("", "–")
+                .replace("\u2013", "–")
+                .replace("\u2014", "—")
         )
         text = re.sub(r'â€[^\w\s]*', '', text)
 
-        # 2. Remove Wikipedia dictionary language & phonetic pronunciation headers (both closed and unclosed)
+        # 2. Remove Wikipedia dictionary language, phonetic, and translation headers
+        text = re.sub(r'\(\s*(?:transl\.|trans\.|lit\.|pronounced|meaning|listen|Sanskrit|Hindi|IPA)[^\)]*(?:\)|$)', '', text, flags=re.IGNORECASE)
         text = re.sub(r'\(\s*;\s*(?:Sanskrit|Hindi|IPA|romanized|Arabic|Greek|Latin|lit\.)[^\)]*(?:\)|$)', '', text, flags=re.IGNORECASE)
         text = re.sub(r'\([^\)]*(?:Sanskrit|Hindi|IPA|romanized|pronounced|lit\.|meaning\s+[\'"])[^\)]*\)', '', text, flags=re.IGNORECASE)
         text = re.sub(r'\([^\)]*[\u0900-\u097F\u0600-\u06FF\u4E00-\u9FFF\u0400-\u04FF]+[^\)]*\)', '', text)
@@ -95,7 +100,10 @@ class NLPService:
         text = re.sub(r'\[\s*\d+\s*\]', '', text)
         text = re.sub(r'\[(edit|citation needed|note \d+)\]', '', text, flags=re.IGNORECASE)
 
-        # 11. Normalize whitespace
+        # 11. Remove dangling trailing unclosed parenthesis at end of string
+        text = re.sub(r'\s*\([^\)]*$', '', text)
+
+        # 12. Normalize whitespace
         text = re.sub(r'\s+', ' ', text).strip()
         return text
 
@@ -181,6 +189,11 @@ class NLPService:
         s = re.sub(r'[\s,;:–—\-]+$', '', s).strip()
         if not s:
             return ""
+
+        # Strip unclosed parenthesis fragments at the end of sentence
+        s = re.sub(r'\s*\([^\)]*$', '', s).strip()
+        if s.count("(") > s.count(")"):
+            s = re.sub(r'\([^\)]*$', '', s).strip()
 
         # Discard fragments that end abruptly with truncated dictionary markers
         if re.search(r'\b(lit|romanized|pronounced|meaning)\.?$', s, re.IGNORECASE):
@@ -509,18 +522,18 @@ class NLPService:
         for idx, s in enumerate(ordered):
             sl = s.lower()
             if is_biographical:
-                if any(w in sl for w in ["born", "raised", "childhood", "youth", "early life", "education", "college", "school", "trained", "graduated", "bar at", "moved to", "london", "gujarat", "inner temple", "lawsuit"]):
+                if any(kw in sl for kw in ["was an indian lawyer", "was an indian", "was a theoretical physicist", "was a south african", "was an american", "revered in india as", "father of the nation", "employed nonviolent resistance to lead"]) or idx == 0:
+                    overview_sents.append(s)
+                elif any(w in sl for w in ["born in", "born and raised", "childhood", "youth", "early life", "education", "college", "school", "trained", "graduated", "bar at", "moved to", "london", "gujarat", "inner temple", "lawsuit"]):
                     background_sents.append(s)
                 elif any(w in sl for w in ["congress", "movement", "campaign", "march", "salt", "quit india", "nonviolent", "satyagraha", "protest", "strike", "activism", "leadership", "resistance"]):
                     core_achievements_sents.append(s)
                 elif any(w in sl for w in ["independence", "partition", "violence", "assassinated", "godse", "war", "government", "treaty", "pakistan", "presidency", "minister"]):
                     impact_sents.append(s)
-                elif any(w in sl for w in ["birthday", "commemorated", "jayanti", "legacy", "international day", "father of the nation", "bapu", "inspired", "memorial", "tribute", "remembered"]):
+                elif any(w in sl for w in ["birthday", "commemorated", "jayanti", "legacy", "international day", "inspired", "memorial", "tribute", "remembered"]):
                     legacy_sents.append(s)
-                elif idx < 2:
-                    overview_sents.append(s)
                 else:
-                    core_achievements_sents.append(s)
+                    overview_sents.append(s)
             else:
                 if any(w in sl for w in ["history", "origin", "developed by", "invented", "founded", "began", "created by", "evolution"]):
                     background_sents.append(s)
@@ -562,6 +575,16 @@ class NLPService:
                 p_hl = self.apply_markdown_highlighting(p, kw, max_highlights=5)
                 sections.append(f"{h}\n{p_hl}")
             return "\n\n".join(sections).strip()
+
+        if overview_sents:
+            def is_defining(s):
+                sl = s.lower()
+                if any(kw in sl for kw in ["was an indian", "was an ", "was a ", "is an ", "is a ", "born and raised", "revered as", "employed nonviolent", "political ethicist"]):
+                    return 2
+                if any(kw in sl for kw in ["commonly used", "often referred", "renowned"]):
+                    return 1
+                return 0
+            overview_sents.sort(key=is_defining, reverse=True)
 
         sections = []
         if is_biographical:
