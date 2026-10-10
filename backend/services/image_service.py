@@ -15,8 +15,8 @@ class ImageService:
     Bing Images (with strict B2B/CAD/blueprint filtering), and verified web sources.
     Guarantees at least 5 images related to the topic.
     """
-    def __init__(self, timeout: float = 4.0):
-        self.timeout = (2.5, timeout)
+    def __init__(self, timeout: float = 8.0):
+        self.timeout = (4.0, timeout)
         self.session = requests.Session()
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",

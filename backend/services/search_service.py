@@ -103,11 +103,22 @@ class SearchService:
 
         return True
 
+    def _is_allowed_domain(self, link: str, query: str) -> bool:
+        """Filters out unrelated developer forums and tech answer boards for non-technical queries."""
+        lower_link = link.lower()
+        dev_forums = ["social.msdn.microsoft.com", "answers.microsoft.com", "experts-exchange.com"]
+        if any(df in lower_link for df in dev_forums):
+            ms_keywords = {"c#", ".net", "dotnet", "azure", "visual studio", "powershell", "win32", "wpf", "windows server", "msdn"}
+            q_words = set(re.findall(r'\b\w+\b', query.lower()))
+            if not (q_words & ms_keywords):
+                return False
+        return True
+
     def search_bing(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
         url = f"https://www.bing.com/search?q={quote(query)}&setlang=en-US&cc=US"
         results = []
         try:
-            resp = self.session.get(url, timeout=(3.0, 5.0))
+            resp = self.session.get(url, timeout=(4.0, 7.0))
             if resp.status_code == 200:
                 soup = BeautifulSoup(resp.text, "html.parser")
                 items = soup.select("li.b_algo")
@@ -126,6 +137,9 @@ class SearchService:
                         if not self._is_relevant_language(title, snippet, query):
                             continue
 
+                        if not self._is_allowed_domain(link, query):
+                            continue
+
                         if link and link.startswith("http") and "bing.com" not in link:
                             results.append({
                                 "title": title,
@@ -139,20 +153,68 @@ class SearchService:
             print(f"[SearchService] Bing search failed: {e}")
         return results
 
-    def search_wikipedia(self, query: str, max_results: int = 4) -> List[Dict[str, str]]:
+    def get_authoritative_wikipedia_extract(self, query: str) -> Optional[Dict[str, Any]]:
+        """
+        Directly fetches the comprehensive, authoritative introductory extract
+        from Wikipedia for named entities and concepts.
+        """
+        wiki_headers = {
+            "User-Agent": "MIRA-Search-Agent/2.0 (contact@mira.ai; educational demo)",
+            "Accept": "application/json"
+        }
+        try:
+            search_url = (
+                f"https://en.wikipedia.org/w/api.php?action=query&list=search"
+                f"&srsearch={quote(query)}&utf8=&format=json&srlimit=2"
+            )
+            resp = self.session.get(search_url, headers=wiki_headers, timeout=(4.0, 7.0))
+            if resp.status_code != 200:
+                return None
+            search_items = resp.json().get("query", {}).get("search", [])
+            if not search_items:
+                return None
+
+            top_title = search_items[0].get("title", "")
+            if not top_title or self.is_blocked(top_title):
+                return None
+
+            extract_url = (
+                f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts"
+                f"&exintro=1&explaintext=1&titles={quote(top_title)}&format=json"
+            )
+            resp_ex = self.session.get(extract_url, headers=wiki_headers, timeout=(4.0, 7.0))
+            if resp_ex.status_code != 200:
+                return None
+            pages = resp_ex.json().get("query", {}).get("pages", {})
+            for pid, p in pages.items():
+                extract = p.get("extract", "").strip()
+                if len(extract) >= 150:
+                    lead_para = extract.split("\n")[0].strip()
+                    link = f"https://en.wikipedia.org/wiki/{quote(top_title.replace(' ', '_'))}"
+                    return {
+                        "title": f"{top_title} - Wikipedia",
+                        "link": link,
+                        "snippet": lead_para[:350],
+                        "full_extract": extract,
+                        "source": "Wikipedia"
+                    }
+        except Exception as e:
+            print(f"[SearchService] Authoritative Wikipedia extract notice: {e}")
+        return None
+
+    def search_wikipedia(self, query: str, max_results: int = 4) -> List[Dict[str, Any]]:
         results = []
-        # 1. Primary: Wikipedia extracts API for rich, authoritative introductory paragraphs
         extract_url = (
             f"https://en.wikipedia.org/w/api.php?action=query&format=json"
             f"&generator=search&gsrsearch={quote(query)}&gsrlimit={max_results}"
             f"&prop=extracts&exintro=1&explaintext=1"
         )
         wiki_headers = {
-            "User-Agent": "MIRA-Intelligence-Search/2.0 (mira-dev@lexcodex.local; academic bot)",
+            "User-Agent": "MIRA-Search-Agent/2.0 (contact@mira.ai; educational demo)",
             "Accept": "application/json"
         }
         try:
-            resp = self.session.get(extract_url, headers=wiki_headers, timeout=(2.0, 3.0))
+            resp = self.session.get(extract_url, headers=wiki_headers, timeout=(4.0, 7.0))
             if resp.status_code == 200:
                 pages = resp.json().get("query", {}).get("pages", {})
                 for pid, p in pages.items():
@@ -160,10 +222,12 @@ class SearchService:
                     extract = p.get("extract", "").strip()
                     if title and extract and not self.is_blocked(title) and not self.is_blocked(extract):
                         link = f"https://en.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
+                        lead_para = extract.split("\n")[0].strip()
                         results.append({
                             "title": title,
                             "link": link,
-                            "snippet": extract[:350],
+                            "snippet": lead_para[:350],
+                            "full_extract": extract,
                             "source": "Wikipedia"
                         })
                     if len(results) >= max_results:
@@ -171,11 +235,11 @@ class SearchService:
         except Exception as e:
             print(f"[SearchService] Wikipedia extract search notice: {e}")
 
-        # 2. Secondary fallback: OpenSearch
+        # Secondary fallback: OpenSearch
         if len(results) < max_results:
             url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={quote(query)}&limit={max_results}&namespace=0&format=json"
             try:
-                resp = self.session.get(url, headers=wiki_headers, timeout=(2.0, 3.0))
+                resp = self.session.get(url, headers=wiki_headers, timeout=(4.0, 7.0))
                 if resp.status_code == 200:
                     data = resp.json()
                     if len(data) >= 4:
@@ -189,7 +253,7 @@ class SearchService:
                                         "snippet": snippet if snippet else f"Wikipedia article on {title}",
                                         "source": "Wikipedia"
                                     })
-            except Exception as e:
+            except Exception:
                 pass
 
         return results[:max_results]
@@ -198,7 +262,7 @@ class SearchService:
         url = f"https://api.duckduckgo.com/?q={quote(query)}&format=json"
         results = []
         try:
-            resp = self.session.get(url, timeout=(3.0, 4.0))
+            resp = self.session.get(url, timeout=(4.0, 7.0))
             data = resp.json()
             abstract = data.get("AbstractText", "")
             abstract_url = data.get("AbstractURL", "")
@@ -214,13 +278,12 @@ class SearchService:
             print(f"[SearchService] DuckDuckGo API failed: {e}")
         return results
 
-    def search(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
+    def search(self, query: str, max_results: int = 5) -> List[Dict[str, Any]]:
         """Main search method with query cleaning, caching, multi-engine support, and blocked keywords filtering."""
         query = query.strip()
         if not query:
             return []
 
-        # Clean conversational instructions to extract pure search query
         clean_query = self.clean_search_query(query)
 
         if self.is_blocked(clean_query):
@@ -237,12 +300,22 @@ class SearchService:
         combined_results = []
         seen_links = set()
 
+        # 1. Authoritative Wikipedia extract for conceptual and entity queries
+        is_entity_query = bool(re.search(r'\b(who|what|where|when|why|how|explain|describe|tell me|biography|history|life)\b', query, re.IGNORECASE))
+        if is_entity_query or len(clean_query.split()) <= 4:
+            wiki_lead = self.get_authoritative_wikipedia_extract(clean_query)
+            if wiki_lead and wiki_lead["link"] not in seen_links:
+                seen_links.add(wiki_lead["link"])
+                combined_results.append(wiki_lead)
+
+        # 2. Bing Search
         bing_results = self.search_bing(clean_query, max_results=max_results)
         for r in bing_results:
             if r["link"] not in seen_links:
                 seen_links.add(r["link"])
                 combined_results.append(r)
 
+        # 3. Wikipedia API Search fallback if more results needed
         if len(combined_results) < max_results:
             wiki_results = self.search_wikipedia(clean_query, max_results=max_results - len(combined_results))
             for r in wiki_results:
@@ -250,6 +323,7 @@ class SearchService:
                     seen_links.add(r["link"])
                     combined_results.append(r)
 
+        # 4. DuckDuckGo Instant Answer fallback
         if len(combined_results) < 2:
             ddg_results = self.search_duckduckgo_api(clean_query)
             for r in ddg_results:

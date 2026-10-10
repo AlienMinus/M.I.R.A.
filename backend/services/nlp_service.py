@@ -194,7 +194,7 @@ class NLPService:
 
         return s
 
-    def filter_and_clean_sentences(self, raw_text: str, query: str = None) -> List[str]:
+    def filter_and_clean_sentences(self, raw_text: str, query: str = None, is_trusted_source: bool = False) -> List[str]:
         if not raw_text:
             return []
 
@@ -203,6 +203,11 @@ class NLPService:
         cleaned = []
 
         query_keywords = set(self.get_content_words(query)) if query else set()
+        pronouns_and_refs = {
+            "he", "his", "him", "she", "her", "they", "their", "it", "its", "this", "these",
+            "the", "leader", "movement", "system", "technology", "method", "work", "campaign",
+            "theory", "concept", "principle", "founder", "author", "scientist", "nation"
+        }
 
         for s in raw_sentences:
             s = self.clean_sentence(s)
@@ -221,21 +226,21 @@ class NLPService:
                 continue
 
             # Ensure sentence is topically relevant to query
-            if query_keywords:
+            if query_keywords and not is_trusted_source:
                 s_words = set(re.findall(r'\b\w+\b', s.lower()))
-                if len(query_keywords) >= 2:
-                    distinctive = list(query_keywords)[-1]
-                    overlap_count = len(s_words & query_keywords)
-                    if overlap_count < 2 and distinctive not in s_words:
-                        continue
-                else:
-                    has_keyword = bool(s_words & query_keywords)
-                    has_stem = any(
-                        len(qw) >= 4 and any(qw in sw or sw in qw for sw in s_words if len(sw) >= 4)
-                        for qw in query_keywords
-                    )
-                    if not (has_keyword or has_stem):
-                        continue
+                # 1. Check direct keyword match or stem
+                has_keyword = bool(s_words & query_keywords)
+                has_stem = any(
+                    len(qw) >= 4 and any(qw in sw or sw in qw for sw in s_words if len(sw) >= 4)
+                    for qw in query_keywords
+                )
+                # 2. Check narrative pronouns + date / uppercase entity
+                has_contextual_ref = bool(s_words & pronouns_and_refs) and bool(
+                    re.search(r'\b(17|18|19|20)\d{2}\b', s) or any(w[0].isupper() for w in s.split()[1:] if len(w) > 2)
+                )
+
+                if not (has_keyword or has_stem or has_contextual_ref):
+                    continue
 
             if not self.is_semantically_duplicate(s, cleaned):
                 cleaned.append(s)
@@ -431,34 +436,48 @@ class NLPService:
 
         ordered = self.order_by_relevance(query, deduped)
 
-        overview = ordered[0] if len(ordered) > 0 else f"Key summary regarding {query}."
-        kw_overview = self.extract_salient_keywords(overview, query=query)
-        overview_hl = self.apply_markdown_highlighting(overview, kw_overview, max_highlights=3)
+        overview_sents = ordered[:2] if len(ordered) >= 2 else ordered[:1]
+        overview_text = " ".join(overview_sents) if overview_sents else f"Key summary regarding {query}."
+        kw_overview = self.extract_salient_keywords(overview_text, query=query)
+        overview_hl = self.apply_markdown_highlighting(overview_text, kw_overview, max_highlights=4)
 
-        bullets = ordered[1:6] if len(ordered) > 1 else ordered[:1]
-        details = ordered[6:10] if len(ordered) > 6 else []
+        remaining = ordered[2:]
+        background = remaining[:4]
+        milestones = remaining[4:9]
+        impact_legacy = remaining[9:15]
 
         lines = [
             f"# {title}",
             "",
-            "### Overview",
+            "### Executive Overview",
             overview_hl,
             "",
-            "### Key Takeaways & Findings"
+            "### Core Background & Historical Origins"
         ]
 
-        for b in bullets:
+        if not background:
+            background = remaining[:3]
+
+        for b in background:
             kw_b = self.extract_salient_keywords(b, query=query)
             b_hl = self.apply_markdown_highlighting(b, kw_b, max_highlights=3)
             lines.append(f"- {b_hl}")
 
-        if details:
+        if milestones:
             lines.append("")
-            lines.append("### In-Depth Breakdown")
-            details_text = " ".join(details)
-            kw_det = self.extract_salient_keywords(details_text, query=query)
-            details_hl = self.apply_markdown_highlighting(details_text, kw_det, max_highlights=4)
-            lines.append(details_hl)
+            lines.append("### Major Milestones & Key Contributions")
+            for m in milestones:
+                kw_m = self.extract_salient_keywords(m, query=query)
+                m_hl = self.apply_markdown_highlighting(m, kw_m, max_highlights=3)
+                lines.append(f"- {m_hl}")
+
+        if impact_legacy:
+            lines.append("")
+            lines.append("### Impact, Philosophy & Global Legacy")
+            for l in impact_legacy:
+                kw_l = self.extract_salient_keywords(l, query=query)
+                l_hl = self.apply_markdown_highlighting(l, kw_l, max_highlights=3)
+                lines.append(f"- {l_hl}")
 
         return "\n".join(lines)
 
@@ -478,33 +497,100 @@ class NLPService:
 
         ordered = self.order_by_relevance(query, deduped)
 
-        if len(ordered) <= 2:
-            body_paragraphs = [" ".join(ordered)]
-        elif len(ordered) <= 5:
-            mid = max(len(ordered) // 2, 1)
-            p1 = " ".join(ordered[:mid])
-            p2 = " ".join(ordered[mid:])
-            body_paragraphs = [p1, p2]
+        overview_sents = []
+        background_sents = []
+        core_achievements_sents = []
+        impact_sents = []
+        legacy_sents = []
+
+        is_biographical = bool(re.search(r'\b(who|biography|born|died|life|figure|father|leader|author|activist|president|prime minister)\b', query, re.IGNORECASE))
+
+        for idx, s in enumerate(ordered):
+            sl = s.lower()
+            if is_biographical:
+                if any(w in sl for w in ["born", "raised", "childhood", "youth", "early life", "education", "college", "school", "trained", "graduated", "bar at", "moved to", "london", "gujarat", "inner temple", "lawsuit"]):
+                    background_sents.append(s)
+                elif any(w in sl for w in ["congress", "movement", "campaign", "march", "salt", "quit india", "nonviolent", "satyagraha", "protest", "strike", "activism", "leadership", "resistance"]):
+                    core_achievements_sents.append(s)
+                elif any(w in sl for w in ["independence", "partition", "violence", "assassinated", "godse", "war", "government", "treaty", "pakistan", "presidency", "minister"]):
+                    impact_sents.append(s)
+                elif any(w in sl for w in ["birthday", "commemorated", "jayanti", "legacy", "international day", "father of the nation", "bapu", "inspired", "memorial", "tribute", "remembered"]):
+                    legacy_sents.append(s)
+                elif idx < 2:
+                    overview_sents.append(s)
+                else:
+                    core_achievements_sents.append(s)
+            else:
+                if any(w in sl for w in ["history", "origin", "developed by", "invented", "founded", "began", "created by", "evolution"]):
+                    background_sents.append(s)
+                elif any(w in sl for w in ["mechanism", "architecture", "works by", "principles", "features", "algorithms", "components", "structure", "engine"]):
+                    core_achievements_sents.append(s)
+                elif any(w in sl for w in ["applications", "use cases", "industry", "implemented", "impact", "systems", "benefits", "advantages"]):
+                    impact_sents.append(s)
+                elif any(w in sl for w in ["future", "standard", "legacy", "evolution", "modern", "outlook", "widely used", "adopted"]):
+                    legacy_sents.append(s)
+                elif idx < 2:
+                    overview_sents.append(s)
+                else:
+                    core_achievements_sents.append(s)
+
+        all_categorized = [overview_sents, background_sents, core_achievements_sents, impact_sents, legacy_sents]
+        non_empty = [cat for cat in all_categorized if cat]
+
+        # Balanced distribution fallback
+        if len(non_empty) < 3 or len(ordered) < 6:
+            num_paras = 3 if len(ordered) >= 6 else (2 if len(ordered) >= 3 else 1)
+            chunk_size = max(1, len(ordered) // num_paras)
+            body_paragraphs = []
+            for i in range(num_paras):
+                if i == num_paras - 1:
+                    chunk = ordered[i * chunk_size:]
+                else:
+                    chunk = ordered[i * chunk_size:(i + 1) * chunk_size]
+                if chunk:
+                    body_paragraphs.append(" ".join(chunk))
+
+            headers = [
+                "### Overview & Significance",
+                "### Detailed Context & Core Operations",
+                "### Key Outcomes & Enduring Impact"
+            ]
+            sections = []
+            for h, p in zip(headers, body_paragraphs):
+                kw = self.extract_salient_keywords(p, query=query)
+                p_hl = self.apply_markdown_highlighting(p, kw, max_highlights=5)
+                sections.append(f"{h}\n{p_hl}")
+            return "\n\n".join(sections).strip()
+
+        sections = []
+        if is_biographical:
+            header_map = [
+                ("### Historical Overview & Identity", overview_sents),
+                ("### Early Life, Education & Formative Background", background_sents),
+                ("### Major Movements, Satyagraha & Core Leadership", core_achievements_sents),
+                ("### Independence, Historical Transformation & Critical Events", impact_sents),
+                ("### Enduring Legacy & Global Recognition", legacy_sents),
+            ]
         else:
-            p1 = " ".join(ordered[:2])
-            p2 = " ".join(ordered[2:5])
-            p3 = " ".join(ordered[5:8])
-            body_paragraphs = [p1, p2, p3]
+            header_map = [
+                ("### Executive Overview & Definition", overview_sents),
+                ("### Background, Origins & Fundamental Concepts", background_sents),
+                ("### Core Architecture, Principles & Key Operations", core_achievements_sents),
+                ("### Real-World Applications & Industry Impact", impact_sents),
+                ("### Summary, Enduring Value & Future Horizons", legacy_sents),
+            ]
 
-        formatted_paragraphs = []
-        for p in body_paragraphs:
-            p_clean = p.strip()
-            if not p_clean:
-                continue
-            # Extract salient keywords via NLP POS tagging & regex
-            keywords = self.extract_salient_keywords(p_clean, query=query)
-            # Apply markdown bolding syntax
-            p_highlighted = self.apply_markdown_highlighting(p_clean, keywords, max_highlights=5)
-            formatted_paragraphs.append(p_highlighted)
+        for heading, sents in header_map:
+            if sents:
+                p_text = " ".join(sents).strip()
+                if p_text:
+                    kw = self.extract_salient_keywords(p_text, query=query)
+                    p_hl = self.apply_markdown_highlighting(p_text, kw, max_highlights=5)
+                    sections.append(f"{heading}\n{p_hl}")
 
-        return "\n\n".join(formatted_paragraphs).strip()
+        return "\n\n".join(sections).strip()
 
-    def extract_summary(self, query: str, sentences: List[str], max_length: int = 250) -> str:
+    def extract_summary(self, query: str, sentences: List[str], max_length: int = 350) -> str:
         """
         Synthesizes a distinct, high-impact concluding takeaway summarizing the response,
         ensuring it does NOT duplicate the opening introductory paragraph.
@@ -513,11 +599,11 @@ class NLPService:
             return f"Information regarding {query} was comprehensively analyzed and synthesized."
         ordered = self.order_by_relevance(query, sentences)
 
-        # Select a concluding takeaway distinct from paragraph 1 (which uses ordered[0] and ordered[1])
-        if len(ordered) >= 3:
-            candidate = ordered[2] if len(ordered) == 3 else ordered[-1]
+        # Select a concluding takeaway distinct from paragraph 1
+        if len(ordered) >= 4:
+            candidate = ordered[3] if len(ordered) == 4 else ordered[-1]
             conclusion = f"In summary, {candidate.strip()}"
-        elif len(ordered) == 2:
+        elif len(ordered) >= 2:
             conclusion = f"Overall, {ordered[1].strip()}"
         else:
             conclusion = f"Key takeaway: {ordered[0].strip()}"

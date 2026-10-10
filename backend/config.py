@@ -52,8 +52,8 @@ LSTM_CONFIG = {
 
 SEARCH_CONFIG = {
     'max_results': 5,
-    'max_scrape_pages': 3,
-    'request_timeout': 3.5,
+    'max_scrape_pages': 4,
+    'request_timeout': 6.0,
     'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 }
 

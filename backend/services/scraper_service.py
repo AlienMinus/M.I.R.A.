@@ -16,7 +16,7 @@ class ScraperService:
         ]
 
     def _is_clean_paragraph(self, text: str) -> bool:
-        if len(text) < 30 or len(text) > 1500:
+        if len(text) < 30 or len(text) > 2000:
             return False
         lower = text.lower()
         if any(dk in lower for dk in self.disclaimer_keywords):
@@ -46,6 +46,7 @@ class ScraperService:
             # 1. Search all <p> tags
             for p in soup.find_all('p'):
                 clean_text = p.get_text(separator=' ', strip=True)
+                clean_text = re.sub(r'\[\s*[a-zA-Z0-9_-]+\s*\]', '', clean_text)
                 if self._is_clean_paragraph(clean_text):
                     paragraphs.append(clean_text)
 
@@ -53,6 +54,7 @@ class ScraperService:
             if len(paragraphs) < 3:
                 for block in soup.find_all(['li', 'section', 'article']):
                     clean_text = block.get_text(separator=' ', strip=True)
+                    clean_text = re.sub(r'\[\s*[a-zA-Z0-9_-]+\s*\]', '', clean_text)
                     if self._is_clean_paragraph(clean_text) and clean_text not in paragraphs:
                         paragraphs.append(clean_text)
 
@@ -61,7 +63,7 @@ class ScraperService:
 
         return paragraphs
 
-    def scrape_sources(self, search_results: List[Dict[str, str]], max_pages: int = 3) -> List[Dict[str, Any]]:
+    def scrape_sources(self, search_results: List[Dict[str, Any]], max_pages: int = 4) -> List[Dict[str, Any]]:
         scraped_data = []
         target_results = search_results[:max_pages]
         if not target_results:
@@ -73,13 +75,26 @@ class ScraperService:
             url = res.get('link', '')
             title = res.get('title', '')
             snippet = res.get('snippet', '')
+            
+            # If the search result already contains a full Wikipedia extract, reuse its paragraphs
+            if res.get('full_extract'):
+                wiki_paras = [p.strip() for p in res['full_extract'].split('\n') if len(p.strip()) >= 30]
+                if wiki_paras:
+                    return {
+                        'title': title,
+                        'link': url,
+                        'snippet': snippet,
+                        'source': res.get('source', 'Wikipedia'),
+                        'paragraphs': wiki_paras[:10]
+                    }
+
             paragraphs = self.scrape_url(url)
             return {
                 'title': title,
                 'link': url,
                 'snippet': snippet,
                 'source': res.get('source', 'Web'),
-                'paragraphs': paragraphs[:6]
+                'paragraphs': paragraphs[:10]
             }
 
         with ThreadPoolExecutor(max_workers=min(len(target_results), 4)) as executor:
