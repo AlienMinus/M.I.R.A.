@@ -5,12 +5,7 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 from nltk.tag import pos_tag
 
-# Ensure NLTK packages
-for pkg in ["punkt", "punkt_tab", "stopwords", "averaged_perceptron_tagger", "averaged_perceptron_tagger_eng"]:
-    try:
-        nltk.download(pkg, quiet=True)
-    except Exception as e:
-        pass
+# NLTK packages are loaded locally from user nltk_data directory
 
 class NLPService:
     def __init__(self):
